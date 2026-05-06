@@ -1,0 +1,421 @@
+
+import { useState, useEffect, useRef } from "react";
+import { useSocket } from "../../context/SocketContext";
+import api from "../../utils/api";
+import Avatar from "../common/Avatar";
+import MessageBubble from "./MessageBubble";
+
+const EMOJIS = [
+  "😀",
+  "😂",
+  "😍",
+  "🥳",
+  "😎",
+  "😭",
+  "👍",
+  "🙏",
+  "🔥",
+  "✨",
+  "❤️",
+  "🎉",
+  "💬",
+  "✅",
+  "👀",
+  "🙌",
+];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+const mentionTokenRegex = /(^|\s)@([\w.-]*)$/;
+
+const getPreviewText = (message) => {
+  if (!message) return "";
+  if (message.type === "image") return "Image";
+  if (message.type === "file") return message.fileName || "File";
+  return message.content || "";
+};
+
+export default function ChatWindow({
+  room,
+  currentUser,
+  onStartCall,
+  onMessageReceived,
+}) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const { socket, onlineUsers } = useSocket();
+  const bottomRef = useRef(null);
+  const typingTimeout = useRef(null);
+  const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const otherUser = room.members?.find((m) => m._id !== currentUser._id);
+  const roomTitle = room.isGroup
+    ? room.name || "Group chat"
+    : otherUser?.username;
+  const onlineMemberCount =
+    room.members?.filter(
+      (member) => member._id !== currentUser._id && onlineUsers.has(member._id)
+    ).length || 0;
+  const mentionMatch = input.match(mentionTokenRegex);
+  const mentionQuery = mentionMatch?.[2]?.toLowerCase();
+  const mentionSuggestions =
+    mentionQuery === undefined
+      ? []
+      : room.members
+          ?.filter(
+            (member) =>
+              member._id !== currentUser._id &&
+              member.username.toLowerCase().includes(mentionQuery)
+          )
+          .slice(0, 6) || [];
+
+  
+  useEffect(() => {
+    if (!room?._id) return;
+    api.get(`/messages/${room._id}`).then(({ data }) => setMessages(data));
+    setInput("");
+    setSelectedFile(null);
+    setReplyTo(null);
+    setShowEmojiPicker(false);
+
+    // Join this room's socket channel to receive messages
+    socket?.emit("room:join", room._id);
+
+    return () => {
+      socket?.emit("room:leave", room._id);
+    };
+  }, [room._id, socket]);
+
+  // Listen for new messages via Socket.IO
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("message:receive", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+      onMessageReceived?.(msg);
+    });
+
+    socket.on("typing:start", ({ username }) => {
+      setTyping(username);
+    });
+    socket.on("typing:stop", () => setTyping(null));
+
+    return () => {
+      socket.off("message:receive");
+      socket.off("typing:start");
+      socket.off("typing:stop");
+    };
+  }, [socket, onMessageReceived]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const extractMentions = (content) =>
+    room.members
+      ?.filter((member) => {
+        if (member._id === currentUser._id) return false;
+        return content
+          .toLowerCase()
+          .includes(`@${member.username.toLowerCase()}`);
+      })
+      .map((member) => member._id) || [];
+
+  const selectMention = (member) => {
+    setInput((value) =>
+      value.replace(mentionTokenRegex, `$1@${member.username} `)
+    );
+    inputRef.current?.focus();
+  };
+
+  const startReply = (message) => {
+    setReplyTo(message);
+    inputRef.current?.focus();
+  };
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!input.trim() && !selectedFile) return;
+
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        socket.emit("message:send", {
+          roomId: room._id,
+          content: reader.result,
+          type: selectedFile.type.startsWith("image/") ? "image" : "file",
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type,
+          replyTo: replyTo?._id,
+        });
+        setSelectedFile(null);
+        setReplyTo(null);
+        setFileError("");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        socket.emit("typing:stop", { roomId: room._id });
+      };
+      reader.readAsDataURL(selectedFile);
+      return;
+    }
+
+    // Emit the message via socket (server saves it and broadcasts to room)
+    socket.emit("message:send", {
+      roomId: room._id,
+      content: input,
+      replyTo: replyTo?._id,
+      mentions: extractMentions(input),
+    });
+    setInput("");
+    setReplyTo(null);
+
+    socket.emit("typing:stop", { roomId: room._id });
+  };
+
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+
+    // Tell others we're typing
+    socket.emit("typing:start", { roomId: room._id });
+
+    // Stop typing indicator after 2 seconds of no input
+    clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
+      socket.emit("typing:stop", { roomId: room._id });
+    }, 2000);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      setSelectedFile(null);
+      setFileError("File must be 5MB or smaller.");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileError("");
+    setShowEmojiPicker(false);
+  };
+
+  const addEmoji = (emoji) => {
+    setInput((value) => `${value}${emoji}`);
+    setShowEmojiPicker(false);
+  };
+
+  const isOnline = onlineUsers.has(otherUser?._id);
+  const canCall = room.isGroup || isOnline;
+
+  const startRoomCall = (type) => {
+    if (room.isGroup) {
+      onStartCall(
+        {
+          roomId: room._id,
+          roomName: roomTitle,
+        },
+        type
+      );
+      return;
+    }
+
+    onStartCall(otherUser._id, type);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Avatar user={room.isGroup ? null : otherUser} name={roomTitle} />
+            {!room.isGroup && isOnline && (
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900" />
+            )}
+          </div>
+          <div>
+            <p className="text-white font-semibold">{roomTitle}</p>
+            <p className="text-xs text-slate-400">
+              {room.isGroup
+                ? `${room.members?.length || 0} members • ${onlineMemberCount} online`
+                : isOnline
+                ? "Online"
+                : "Offline"}
+            </p>
+          </div>
+        </div>
+
+        {/* Call buttons — shown for groups, or when a DM user is online */}
+        {canCall && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => startRoomCall("audio")}
+              title="Audio call"
+              className="w-10 h-10 rounded-full bg-slate-800 hover:bg-emerald-700 flex items-center justify-center transition-colors text-lg"
+            >
+              📞
+            </button>
+            <button
+              onClick={() => startRoomCall("video")}
+              title="Video call"
+              className="w-10 h-10 rounded-full bg-slate-800 hover:bg-emerald-700 flex items-center justify-center transition-colors text-lg"
+            >
+              📹
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+        {messages.map((msg) => (
+          <MessageBubble
+            key={msg._id}
+            message={msg}
+            isOwn={msg.sender._id === currentUser._id}
+            onReply={startReply}
+          />
+        ))}
+
+        {typing && (
+          <div className="text-slate-400 text-sm italic">
+            {typing} is typing...
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-slate-800 bg-slate-900">
+        {replyTo && (
+          <div className="mx-6 mt-3 flex items-start justify-between gap-3 rounded-md border-l-4 border-emerald-500 bg-slate-950 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-emerald-300">
+                Replying to {replyTo.sender?.username || "message"}
+              </p>
+              <p className="truncate text-sm text-slate-300">
+                {getPreviewText(replyTo)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              className="rounded px-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+              aria-label="Cancel reply"
+            >
+              X
+            </button>
+          </div>
+        )}
+
+        <form
+          onSubmit={sendMessage}
+          className="relative flex items-center gap-3 px-6 py-4"
+        >
+          {showEmojiPicker && (
+            <div className="absolute bottom-20 left-6 grid w-64 grid-cols-8 gap-1 rounded-lg border border-slate-700 bg-slate-950 p-3 shadow-xl">
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => addEmoji(emoji)}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-slate-800"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {mentionSuggestions.length > 0 && (
+            <div className="absolute bottom-20 left-36 w-64 overflow-hidden rounded-lg border border-slate-700 bg-slate-950 shadow-xl">
+              {mentionSuggestions.map((member) => (
+                <button
+                  key={member._id}
+                  type="button"
+                  onClick={() => selectMention(member)}
+                  className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-slate-800"
+                >
+                  <Avatar user={member} size="xs" />
+                  <span className="text-sm text-slate-100">
+                    @{member.username}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(selectedFile || fileError) && (
+            <div className="absolute bottom-20 right-6 max-w-xs rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm shadow-xl">
+              {selectedFile ? (
+                <div className="flex min-w-0 items-center gap-2 text-slate-200">
+                  <span>📎</span>
+                  <span className="truncate">{selectedFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    className="text-slate-400 hover:text-white"
+                    title="Remove file"
+                  >
+                    X
+                  </button>
+                </div>
+              ) : (
+                <p className="text-red-300">{fileError}</p>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker((value) => !value)}
+            title="Add emoji"
+            className="h-12 w-12 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800"
+          >
+            😊
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach file"
+            className="h-12 w-12 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800"
+          >
+            📎
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Message or type @ to mention"
+            className="flex-1 bg-slate-950 text-white placeholder-slate-500 rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() && !selectedFile}
+            className="w-12 h-12 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 rounded-md flex items-center justify-center transition-colors text-lg"
+          >
+            ➤
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

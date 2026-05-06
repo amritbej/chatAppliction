@@ -1,0 +1,103 @@
+// pages/RegisterPage.jsx
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../utils/api";
+
+const googleAuthUrl = `${
+  import.meta.env.VITE_API_ORIGIN || "http://localhost:5000"
+}/api/auth/google`;
+
+export default function RegisterPage() {
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const { data } = await api.post("/auth/register", form);
+      login(data);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white">ChatApp</h1>
+          <p className="text-slate-400 mt-2">Create your account</p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="bg-slate-900 rounded-lg p-8 space-y-4 border border-slate-800 shadow-2xl"
+        >
+          {error && (
+            <div className="bg-red-950/50 border border-red-800 text-red-200 px-4 py-2 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+
+          <a
+            href={googleAuthUrl}
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-slate-700 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 font-bold text-blue-600">
+              G
+            </span>
+            Continue with Google
+          </a>
+
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500">
+            <span className="h-px flex-1 bg-slate-800" />
+            or
+            <span className="h-px flex-1 bg-slate-800" />
+          </div>
+
+          {[
+            { key: "username", label: "Username", type: "text", placeholder: "cooluser123" },
+            { key: "email", label: "Email", type: "email", placeholder: "you@example.com" },
+            { key: "password", label: "Password", type: "password", placeholder: "••••••••" },
+          ].map(({ key, label, type, placeholder }) => (
+            <div key={key}>
+              <label className="text-sm text-slate-400 block mb-1">{label}</label>
+              <input
+                type={type}
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-700 rounded-md px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                placeholder={placeholder}
+                required
+              />
+            </div>
+          ))}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold py-3 rounded-md transition-colors"
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+
+          <p className="text-center text-slate-400 text-sm">
+            Already have an account?{" "}
+            <Link to="/login" className="text-emerald-400 hover:underline">
+              Login
+            </Link>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}
