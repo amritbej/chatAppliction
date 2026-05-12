@@ -8,3 +8,42 @@
 ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
 
 body { background: #020617; color: #e2e8f0; }
+
+.kotha-logo-card {
+  position: relative;
+  animation: kotha-float 5s ease-in-out infinite;
+}
+
+.kotha-logo-card::before {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 239, 125, 0.36), transparent 36%),
+    radial-gradient(circle at 70% 70%, rgba(34, 211, 238, 0.28), transparent 42%);
+  filter: blur(22px);
+  opacity: 0.68;
+  transform: scale(0.94);
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+
+.kotha-logo-card:hover::before,
+.kotha-logo-card:focus-visible::before {
+  opacity: 1;
+  transform: scale(1.12);
+}
+
+.kotha-logo-card > * {
+  z-index: 1;
+}
+
+@keyframes kotha-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}

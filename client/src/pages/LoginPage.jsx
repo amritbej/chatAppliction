@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 
 const googleAuthUrl = `${
-  import.meta.env.VITE_API_ORIGIN || "http://localhost:5000"
+  import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev"
 }/api/auth/google`;
 
 const oauthErrors = {

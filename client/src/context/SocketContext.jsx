@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext(null);
-const socketUrl = import.meta.env.VITE_API_ORIGIN || "http://localhost:5000";
+const socketUrl = import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev";
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();

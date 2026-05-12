@@ -83,7 +83,7 @@ export default function ChatWindow({
     setReplyTo(null);
     setShowEmojiPicker(false);
 
-    // Join this room's socket channel to receive messages
+  
     socket?.emit("room:join", room._id);
 
     return () => {
@@ -91,7 +91,7 @@ export default function ChatWindow({
     };
   }, [room._id, socket]);
 
-  // Listen for new messages via Socket.IO
+  
   useEffect(() => {
     if (!socket) return;
 
@@ -112,7 +112,7 @@ export default function ChatWindow({
     };
   }, [socket, onMessageReceived]);
 
-  // Auto-scroll to bottom when new messages arrive
+  
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -165,7 +165,7 @@ export default function ChatWindow({
       return;
     }
 
-    // Emit the message via socket (server saves it and broadcasts to room)
+   
     socket.emit("message:send", {
       roomId: room._id,
       content: input,
@@ -181,10 +181,10 @@ export default function ChatWindow({
   const handleInputChange = (e) => {
     setInput(e.target.value);
 
-    // Tell others we're typing
+   
     socket.emit("typing:start", { roomId: room._id });
 
-    // Stop typing indicator after 2 seconds of no input
+  
     clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       socket.emit("typing:stop", { roomId: room._id });
@@ -232,7 +232,7 @@ export default function ChatWindow({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+    
       <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="relative">

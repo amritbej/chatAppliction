@@ -1,11 +1,10 @@
-// pages/RegisterPage.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 
 const googleAuthUrl = `${
-  import.meta.env.VITE_API_ORIGIN || "http://localhost:5000"
+  import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev"
 }/api/auth/google`;
 
 export default function RegisterPage() {

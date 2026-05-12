@@ -78,7 +78,7 @@ export default function CallModal({
         </div>
       )}
 
-      {/* Audio call — just show a placeholder */}
+      
       {callType === "audio" && callState === "connected" && (
         <div className="mb-8 grid max-w-2xl grid-cols-2 gap-4 px-4 sm:grid-cols-3">
           <div className="flex h-28 w-28 flex-col items-center justify-center rounded-2xl border border-indigo-500 bg-indigo-600/30 text-white">
@@ -99,7 +99,7 @@ export default function CallModal({
         </div>
       )}
 
-      {/* Hidden audio element for audio calls */}
+      
       {callType === "audio" && (
         <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
       )}

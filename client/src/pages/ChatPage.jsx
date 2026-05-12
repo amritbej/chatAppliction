@@ -6,6 +6,9 @@ import ChatWindow from "../components/chat/ChatWindow";
 import CallModal from "../components/call/CallModal";
 import IncomingCall from "../components/call/IncomingCall";
 import api from "../utils/api";
+import img from "../asset/kotha-202-logo.svg";
+
+
 
 export default function ChatPage() {
   const { user, logout, updateUser } = useAuth();
@@ -87,13 +90,22 @@ export default function ChatPage() {
             onMessageReceived={handleMessageReceived}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-500">
+          <div className="flex-1 flex items-center justify-center px-6 text-slate-500">
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-2xl text-emerald-300">
-                #
-              </div>
-              <p className="text-lg text-slate-300">
-                Select a conversation to start chatting
+              <button
+                type="button"
+                onClick={fetchRooms}
+                className="kotha-logo-card group mx-auto mb-7 flex h-44 w-44 items-center justify-center rounded-full outline-none transition duration-500 hover:-translate-y-1 hover:scale-105 focus-visible:ring-4 focus-visible:ring-cyan-300/30 active:scale-95 sm:h-56 sm:w-56"
+                aria-label="Refresh chats"
+              >
+                <img
+                  src={img}
+                  alt="Kotha 202 logo"
+                  className="relative h-full w-full rounded-full bg-slate-950 object-cover drop-shadow-2xl transition duration-500 group-hover:rotate-3 group-hover:scale-110"
+                />
+              </button>
+              <p className="text-xl font-semibold tracking-wide text-slate-100 sm:text-2xl">
+                kotha-202-connect
               </p>
             </div>
           </div>
