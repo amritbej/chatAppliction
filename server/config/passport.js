@@ -55,6 +55,7 @@ const configurePassport = () => {
           if (user) {
             user.googleId = user.googleId || profile.id;
             user.avatar = user.avatar || profile.photos?.[0]?.value || "";
+            user.isEmailVerified = true;
             await user.save();
             return done(null, user);
           }
@@ -64,6 +65,7 @@ const configurePassport = () => {
             email,
             googleId: profile.id,
             authProvider: "google",
+            isEmailVerified: true,
             avatar: profile.photos?.[0]?.value || "",
           });
 

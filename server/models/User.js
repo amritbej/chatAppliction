@@ -1,6 +1,7 @@
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { isValidEmail } = require("../utils/validators");
 
 const userSchema = new mongoose.Schema(
   {
@@ -18,6 +19,10 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      validate: {
+        validator: isValidEmail,
+        message: "Please enter a valid email address",
+      },
     },
     password: {
       type: String,
@@ -37,6 +42,20 @@ const userSchema = new mongoose.Schema(
       enum: ["local", "google"],
       default: "local",
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationOtpHash: {
+      type: String,
+      select: false,
+    },
+    emailVerificationOtpExpires: Date,
+    passwordResetOtpHash: {
+      type: String,
+      select: false,
+    },
+    passwordResetOtpExpires: Date,
     avatar: {
       type: String,
       default: "", 

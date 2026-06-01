@@ -1,4 +1,3 @@
-// components/chat/Sidebar.jsx
 import { useState, useEffect } from "react";
 import { useSocket } from "../../context/SocketContext";
 import Avatar from "../common/Avatar";
@@ -17,7 +16,7 @@ export default function Sidebar({
 }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("chats"); // "chats" | "people"
+  const [tab, setTab] = useState("chats");
   const [groupMode, setGroupMode] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -33,7 +32,6 @@ export default function Sidebar({
     setUsers(data);
   };
 
-  // Helper: get the "other" user in a DM room
   const getOtherMember = (room) =>
     room.members?.find((m) => m._id !== currentUser._id);
 

@@ -1,6 +1,3 @@
-// index.js — Main entry point for the server
-// This file starts Express + Socket.IO and connects to MongoDB
-
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
@@ -19,8 +16,27 @@ const { setupSocket } = require("./socket/socketHandler");
 const app = express();
 configurePassport();
 
-// ─── Middleware ─────────────────────────────────────────────────────────────
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+]
+  .filter(Boolean)
+  .flatMap((origin) => origin.split(","))
+  .map((origin) => origin.trim().replace(/\/$/, ""));
+
+const corsOrigin = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+    return callback(null, true);
+  }
+  return callback(new Error("Not allowed by CORS"));
+};
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json());
 app.use(
   session({
@@ -36,36 +52,24 @@ app.use(
 );
 app.use(passport.initialize());
 
-// ─── REST API Routes ─────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);       // Login, Register
-app.use("/api/users", userRoutes);      // Get users, search users
-app.use("/api/messages", messageRoutes); // Get chat history
-app.use("/api/rooms", roomRoutes);       // Create / get chat rooms
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/rooms", roomRoutes);
 
-// ─── HTTP Server (required for Socket.IO) ───────────────────────────────────
 const server = http.createServer(app);
 
-// ─── Socket.IO Setup ─────────────────────────────────────────────────────────
-// Socket.IO wraps the HTTP server so WebSockets work on the same port
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: corsOrigin,
     methods: ["GET", "POST"],
+    credentials: true,
   },
   maxHttpBufferSize: 10 * 1024 * 1024,
 });
 
-// All socket events are in a separate file to keep this clean
 setupSocket(io);
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
-
-// Serve React Frontend
-const path = require("path");
-app.use(express.static(path.join(__dirname, "../client/dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/dist", "index.html"));
-});
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {

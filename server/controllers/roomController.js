@@ -4,7 +4,7 @@ const MAX_ROOM_MEMBERS = 15;
 
 const getOrCreateRoom = async (req, res) => {
   try {
-    const { userId, userIds = [], name } = req.body; // The other user, or group users
+    const { userId, userIds = [], name } = req.body;
     const myId = req.user._id;
 
     if (Array.isArray(userIds) && userIds.length > 0) {
@@ -33,7 +33,6 @@ const getOrCreateRoom = async (req, res) => {
       return res.status(400).json({ message: "User id is required" });
     }
 
-    // Look for an existing DM room with exactly these two members
     let room = await Room.findOne({
       isGroup: false,
       members: { $all: [myId, userId], $size: 2 },
@@ -61,7 +60,7 @@ const getMyRooms = async (req, res) => {
           { path: "mentions", select: "username avatar" },
         ],
       })
-      .sort({ updatedAt: -1 }); 
+      .sort({ updatedAt: -1 });
     res.json(rooms);
   } catch (err) {
     res.status(500).json({ message: err.message });

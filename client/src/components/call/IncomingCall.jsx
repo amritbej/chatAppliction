@@ -1,11 +1,7 @@
-// components/call/IncomingCall.jsx
-// This popup appears when someone calls you
 export default function IncomingCall({ caller, callType, onAccept, onReject }) {
   return (
-    // Fixed overlay at bottom-right of screen
     <div className="fixed inset-x-3 bottom-3 z-50 rounded-xl border border-indigo-500 bg-[#1a1a2e] p-4 shadow-2xl shadow-indigo-900/50 sm:inset-x-auto sm:bottom-8 sm:right-8 sm:w-72 sm:rounded-2xl sm:p-6">
       <div className="text-center">
-        {/* Pulsing ring animation */}
         <div className="relative w-16 h-16 mx-auto mb-3">
           <div className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping" />
           <div className="w-16 h-16 rounded-full bg-indigo-600/40 flex items-center justify-center text-2xl">
@@ -19,14 +15,12 @@ export default function IncomingCall({ caller, callType, onAccept, onReject }) {
         </p>
 
         <div className="mt-5 flex gap-3">
-          {/* Accept — green */}
           <button
             onClick={onAccept}
             className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors"
           >
             ✅ Accept
           </button>
-          {/* Reject — red */}
           <button
             onClick={onReject}
             className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"

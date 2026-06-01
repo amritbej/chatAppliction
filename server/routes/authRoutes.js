@@ -1,9 +1,12 @@
-// routes/authRoutes.js
 const express = require("express");
 const passport = require("passport");
 const {
   register,
   login,
+  verifyEmail,
+  resendVerificationOtp,
+  forgotPassword,
+  resetPassword,
   getMe,
   googleCallback,
 } = require("../controllers/authController");
@@ -22,6 +25,10 @@ const requireGoogleConfig = (req, res, next) => {
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/verify-email", verifyEmail);
+router.post("/resend-verification", resendVerificationOtp);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 router.get("/me", protect, getMe);
 
 router.get("/google", requireGoogleConfig, (req, res, next) => {

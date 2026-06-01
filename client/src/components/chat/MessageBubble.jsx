@@ -1,4 +1,3 @@
-// components/chat/MessageBubble.jsx
 import Avatar from "../common/Avatar";
 
 const getPreviewText = (message) => {

@@ -2,9 +2,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
+import { API_ORIGIN } from "../utils/config";
 
 const SocketContext = createContext(null);
-const socketUrl = import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev";
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
@@ -14,9 +14,10 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user?.token) return; 
-    socketRef.current = io(socketUrl, {
+    const socketOptions = {
       auth: { token: user.token },
-    });
+    };
+    socketRef.current = API_ORIGIN ? io(API_ORIGIN, socketOptions) : io(socketOptions);
 
     socketRef.current.on("connect", () => setIsConnected(true));
     socketRef.current.on("disconnect", () => setIsConnected(false));

@@ -1,4 +1,3 @@
-// routes/roomRoutes.js
 const express = require("express");
 const { getOrCreateRoom, getMyRooms } = require("../controllers/roomController");
 const { protect } = require("../middleware/authMiddleware");

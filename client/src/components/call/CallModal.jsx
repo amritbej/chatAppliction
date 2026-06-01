@@ -46,7 +46,6 @@ export default function CallModal({
   };
 
   return (
-    // Dark overlay covering the full screen
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       {callState === "calling" && (
         <div className="mb-6 animate-pulse text-center text-white sm:mb-8">
@@ -103,7 +102,6 @@ export default function CallModal({
         <video ref={remoteVideoRef} autoPlay playsInline className="hidden" />
       )}
 
-      {/* Controls */}
       <div className="mt-5 flex shrink-0 gap-3 sm:mt-6 sm:gap-4">
         <button
           onClick={handleMute}
@@ -127,7 +125,6 @@ export default function CallModal({
           </button>
         )}
 
-        {/* Red hang-up button */}
         <button
           onClick={onEndCall}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-xl transition-colors hover:bg-red-700 sm:h-14 sm:w-14"

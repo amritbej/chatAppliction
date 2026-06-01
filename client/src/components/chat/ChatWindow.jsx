@@ -290,7 +290,6 @@ export default function ChatWindow({
           </div>
         </div>
 
-        {/* Call buttons — shown for groups, or when a DM user is online */}
         {canCall && (
           <div className="flex shrink-0 gap-2">
             <button
@@ -311,7 +310,6 @@ export default function ChatWindow({
         )}
       </div>
 
-      {/* Messages */}
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
         {messages.map((msg) => (
           <MessageBubble
@@ -331,7 +329,6 @@ export default function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="border-t border-slate-800 bg-slate-900 pb-[env(safe-area-inset-bottom)]">
         {replyTo && (
           <div className="mx-3 mt-3 flex items-start justify-between gap-3 rounded-md border-l-4 border-emerald-500 bg-slate-950 px-3 py-2 sm:mx-6">

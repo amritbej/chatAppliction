@@ -2,10 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-
-const googleAuthUrl = `${
-  import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev"
-}/api/auth/google`;
+import { GOOGLE_AUTH_URL } from "../utils/config";
+import { isValidEmail } from "../utils/validators";
 
 const oauthErrors = {
   google_not_configured: "Google sign-in needs OAuth credentials on the server.",
@@ -24,12 +22,23 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const email = form.email.trim();
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/login", form);
+      const { data } = await api.post("/auth/login", { ...form, email });
       login(data);        
       navigate("/");       
     } catch (err) {
+      if (err.response?.data?.requiresVerification) {
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
@@ -55,7 +64,7 @@ export default function LoginPage() {
           )}
 
           <a
-            href={googleAuthUrl}
+            href={GOOGLE_AUTH_URL}
             className="flex w-full items-center justify-center gap-3 rounded-md border border-slate-700 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 font-bold text-blue-600">
@@ -76,6 +85,11 @@ export default function LoginPage() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onBlur={() => {
+                if (form.email && !isValidEmail(form.email)) {
+                  setError("Please enter a valid email address.");
+                }
+              }}
               className="w-full bg-slate-950 border border-slate-700 rounded-md px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
               placeholder="you@example.com"
               required
@@ -101,6 +115,12 @@ export default function LoginPage() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+
+          <div className="text-center">
+            <Link to="/forgot-password" className="text-sm text-emerald-400 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
 
           <p className="text-center text-slate-400 text-sm">
             No account?{" "}

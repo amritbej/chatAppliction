@@ -1,27 +1,29 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
-
-const googleAuthUrl = `${
-  import.meta.env.VITE_API_ORIGIN || "https://rigid-faucet-unsafe.ngrok-free.dev"
-}/api/auth/google`;
+import { GOOGLE_AUTH_URL } from "../utils/config";
+import { isValidEmail } from "../utils/validators";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const email = form.email.trim();
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/register", form);
-      login(data);
-      navigate("/");
+      await api.post("/auth/register", { ...form, email });
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
@@ -48,7 +50,7 @@ export default function RegisterPage() {
           )}
 
           <a
-            href={googleAuthUrl}
+            href={GOOGLE_AUTH_URL}
             className="flex w-full items-center justify-center gap-3 rounded-md border border-slate-700 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
           >
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 font-bold text-blue-600">
@@ -74,6 +76,11 @@ export default function RegisterPage() {
                 type={type}
                 value={form[key]}
                 onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                onBlur={() => {
+                  if (key === "email" && form.email && !isValidEmail(form.email)) {
+                    setError("Please enter a valid email address.");
+                  }
+                }}
                 className="w-full bg-slate-950 border border-slate-700 rounded-md px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 placeholder={placeholder}
                 required

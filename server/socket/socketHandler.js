@@ -1,19 +1,10 @@
-// socket/socketHandler.js
-// This is the HEART of real-time features.
-// Socket.IO lets us push events instantly to all connected clients.
-//
-// How it works:
-//   1. User opens the app → socket.io connects them
-//   2. They join a "room" (like a channel)  
-//   3. When they send a message, we broadcast it to everyone in that room
-//   4. For video/audio calls, we relay WebRTC "signals" between peers
+
 
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Message = require("../models/Message");
 const Room = require("../models/Room");
 
-// Map of userId → socketId (so we can ring a specific user)
 const onlineUsers = new Map();
 const activeRoomCalls = new Map();
 
@@ -58,8 +49,6 @@ const formatSocketUser = (user) => ({
 });
 
 const setupSocket = (io) => {
-  // ── Authentication middleware for sockets ─────────────────────────────────
-  // Verify JWT token before allowing any socket connection
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -78,7 +67,6 @@ const setupSocket = (io) => {
     const userId = socket.user._id.toString();
     console.log(`🟢 ${socket.user.username} connected`);
 
-    // Track this user as online
     onlineUsers.set(userId, socket.id);
     try {
       await User.findByIdAndUpdate(userId, { isOnline: true });
@@ -86,12 +74,8 @@ const setupSocket = (io) => {
       console.error("Failed to mark user online:", err.message);
     }
 
-    // Tell everyone this user came online
     socket.broadcast.emit("user:online", userId);
 
-    // ── Chat Room Events ──────────────────────────────────────────────────────
-
-    // Join a room to receive messages for that conversation
     socket.on("room:join", (roomId) => {
       socket.join(roomId);
     });
@@ -100,7 +84,6 @@ const setupSocket = (io) => {
       socket.leave(roomId);
     });
 
-    // When a user sends a message:
     socket.on(
       "message:send",
       async ({
@@ -157,7 +140,6 @@ const setupSocket = (io) => {
             ),
           ];
 
-          // 1. Save to MongoDB so it's permanent
           const message = await Message.create({
             room: roomId,
             sender: userId,
@@ -170,13 +152,10 @@ const setupSocket = (io) => {
             mentions: mentionIds,
           });
 
-          // 2. Load the sender info to include in the broadcast
           const populated = await getPopulatedMessage(message._id);
 
-          // 3. Update the room's lastMessage for sidebar preview
           await Room.findByIdAndUpdate(roomId, { lastMessage: message._id });
 
-          // 4. Broadcast to EVERYONE in this room (including sender)
           io.to(roomId).emit("message:receive", populated);
         } catch (err) {
           socket.emit("error", { message: err.message });
@@ -184,7 +163,6 @@ const setupSocket = (io) => {
       }
     );
 
-    // Typing indicators
     socket.on("typing:start", ({ roomId }) => {
       socket.to(roomId).emit("typing:start", {
         userId,
@@ -208,16 +186,6 @@ const setupSocket = (io) => {
       }
     });
 
-    // ── WebRTC Signaling Events ───────────────────────────────────────────────
-    // WebRTC needs a "signaling" step to exchange connection info between peers.
-    // We just relay these messages — the actual media goes peer-to-peer.
-    //
-    // Flow:
-    //   Caller → sends "call:offer"    → Server relays to Callee
-    //   Callee → sends "call:answer"   → Server relays to Caller
-    //   Both   → send "call:ice"       → Server relays ICE candidates
-    //   After this, video/audio goes DIRECTLY between the two browsers
-
     socket.on("call:offer", ({ to, offer, callType }) => {
       if (!to || !offer) {
         socket.emit("error", { message: "Invalid call offer" });
@@ -228,7 +196,7 @@ const setupSocket = (io) => {
         from: userId,
         fromUsername: socket.user.username,
         offer,
-        callType, // "video" or "audio"
+        callType,
       });
     });
 
@@ -241,7 +209,6 @@ const setupSocket = (io) => {
       emitToUser(io, to, "call:answered", { answer });
     });
 
-    // ICE candidates help WebRTC punch through firewalls
     socket.on("call:ice", ({ to, candidate }) => {
       if (!to || !candidate) return;
       emitToUser(io, to, "call:ice", { candidate });
@@ -383,7 +350,6 @@ const setupSocket = (io) => {
       socket.leave(roomId);
     });
 
-    // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on("disconnect", async () => {
       activeRoomCalls.forEach((_roomCall, roomId) => {
         leaveRoomCall({ roomId });
