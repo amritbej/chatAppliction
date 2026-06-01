@@ -1,5 +1,7 @@
 const trimTrailingSlash = (value) => value?.replace(/\/$/, "") || "";
-const defaultApiOrigin = import.meta.env.DEV ? "http://localhost:5000" : "";
+const defaultApiOrigin = import.meta.env.DEV 
+  ? "http://localhost:5000" 
+  : "https://chatappliction-m73z.onrender.com";
 
 export const API_ORIGIN = trimTrailingSlash(
   import.meta.env.VITE_API_ORIGIN || defaultApiOrigin
