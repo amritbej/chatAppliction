@@ -89,8 +89,11 @@ export default function Sidebar({
 
   return (
     <>
-    <aside className="w-72 bg-slate-900 flex flex-col border-r border-slate-800">
-      {/* Header */}
+    <aside
+      className={`h-full w-full flex-col border-r border-slate-800 bg-slate-900 md:w-72 ${
+        activeRoom ? "hidden md:flex" : "flex"
+      }`}
+    >
       <div className="p-4 border-b border-slate-800">
         <div className="flex items-center justify-between mb-3">
           <button
@@ -111,7 +114,6 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* Search */}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -120,7 +122,6 @@ export default function Sidebar({
         />
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-slate-800">
         {["chats", "people"].map((t) => (
           <button
@@ -137,7 +138,6 @@ export default function Sidebar({
         ))}
       </div>
 
-      {/* List */}
       <div className="flex-1 overflow-y-auto">
         {tab === "chats" ? (
           filteredRooms.length === 0 ? (
@@ -153,7 +153,7 @@ export default function Sidebar({
                 <button
                   key={room._id}
                   onClick={() => onSelectRoom(room)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800 transition-colors text-left ${
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-800 ${
                     isActive ? "bg-slate-800" : ""
                   }`}
                 >
@@ -232,8 +232,10 @@ export default function Sidebar({
                       <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-white text-sm font-medium">{u.username}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-white">
+                      {u.username}
+                    </p>
                     <p className="text-xs text-slate-500">
                       {isOnline(u._id) ? "Online" : "Offline"}
                     </p>

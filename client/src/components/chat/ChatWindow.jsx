@@ -34,11 +34,27 @@ const getPreviewText = (message) => {
   return message.content || "";
 };
 
+const mergeUser = (user, updatedUser) =>
+  user?._id === updatedUser._id ? { ...user, ...updatedUser } : user;
+
+const updateMessageUser = (message, updatedUser) => ({
+  ...message,
+  sender: mergeUser(message.sender, updatedUser),
+  mentions: message.mentions?.map((mention) => mergeUser(mention, updatedUser)),
+  replyTo: message.replyTo
+    ? {
+        ...message.replyTo,
+        sender: mergeUser(message.replyTo.sender, updatedUser),
+      }
+    : message.replyTo,
+});
+
 export default function ChatWindow({
   room,
   currentUser,
   onStartCall,
   onMessageReceived,
+  onBack,
 }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -95,20 +111,33 @@ export default function ChatWindow({
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("message:receive", (msg) => {
+    const handleMessageReceive = (msg) => {
       setMessages((prev) => [...prev, msg]);
       onMessageReceived?.(msg);
-    });
+    };
 
-    socket.on("typing:start", ({ username }) => {
+    const handleTypingStart = ({ username }) => {
       setTyping(username);
-    });
-    socket.on("typing:stop", () => setTyping(null));
+    };
+
+    const handleTypingStop = () => setTyping(null);
+
+    const handleUserUpdated = (updatedUser) => {
+      setMessages((current) =>
+        current.map((message) => updateMessageUser(message, updatedUser))
+      );
+    };
+
+    socket.on("message:receive", handleMessageReceive);
+    socket.on("typing:start", handleTypingStart);
+    socket.on("typing:stop", handleTypingStop);
+    socket.on("user:updated", handleUserUpdated);
 
     return () => {
-      socket.off("message:receive");
-      socket.off("typing:start");
-      socket.off("typing:stop");
+      socket.off("message:receive", handleMessageReceive);
+      socket.off("typing:start", handleTypingStart);
+      socket.off("typing:stop", handleTypingStop);
+      socket.off("user:updated", handleUserUpdated);
     };
   }, [socket, onMessageReceived]);
 
@@ -231,18 +260,26 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-w-0 flex-col">
     
-      <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-3 py-3 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-950 text-lg text-slate-200 md:hidden"
+            aria-label="Back to chats"
+          >
+            ←
+          </button>
           <div className="relative">
             <Avatar user={room.isGroup ? null : otherUser} name={roomTitle} />
             {!room.isGroup && isOnline && (
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900" />
             )}
           </div>
-          <div>
-            <p className="text-white font-semibold">{roomTitle}</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-white">{roomTitle}</p>
             <p className="text-xs text-slate-400">
               {room.isGroup
                 ? `${room.members?.length || 0} members • ${onlineMemberCount} online`
@@ -255,18 +292,18 @@ export default function ChatWindow({
 
         {/* Call buttons — shown for groups, or when a DM user is online */}
         {canCall && (
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <button
               onClick={() => startRoomCall("audio")}
               title="Audio call"
-              className="w-10 h-10 rounded-full bg-slate-800 hover:bg-emerald-700 flex items-center justify-center transition-colors text-lg"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-lg transition-colors hover:bg-emerald-700"
             >
               📞
             </button>
             <button
               onClick={() => startRoomCall("video")}
               title="Video call"
-              className="w-10 h-10 rounded-full bg-slate-800 hover:bg-emerald-700 flex items-center justify-center transition-colors text-lg"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-lg transition-colors hover:bg-emerald-700"
             >
               📹
             </button>
@@ -275,7 +312,7 @@ export default function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+      <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
         {messages.map((msg) => (
           <MessageBubble
             key={msg._id}
@@ -295,9 +332,9 @@ export default function ChatWindow({
       </div>
 
       {/* Input */}
-      <div className="border-t border-slate-800 bg-slate-900">
+      <div className="border-t border-slate-800 bg-slate-900 pb-[env(safe-area-inset-bottom)]">
         {replyTo && (
-          <div className="mx-6 mt-3 flex items-start justify-between gap-3 rounded-md border-l-4 border-emerald-500 bg-slate-950 px-3 py-2">
+          <div className="mx-3 mt-3 flex items-start justify-between gap-3 rounded-md border-l-4 border-emerald-500 bg-slate-950 px-3 py-2 sm:mx-6">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-emerald-300">
                 Replying to {replyTo.sender?.username || "message"}
@@ -319,10 +356,10 @@ export default function ChatWindow({
 
         <form
           onSubmit={sendMessage}
-          className="relative flex items-center gap-3 px-6 py-4"
+          className="relative flex items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4"
         >
           {showEmojiPicker && (
-            <div className="absolute bottom-20 left-6 grid w-64 grid-cols-8 gap-1 rounded-lg border border-slate-700 bg-slate-950 p-3 shadow-xl">
+            <div className="absolute bottom-16 left-3 right-3 grid grid-cols-8 gap-1 rounded-lg border border-slate-700 bg-slate-950 p-3 shadow-xl sm:bottom-20 sm:left-6 sm:right-auto sm:w-64">
               {EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -337,7 +374,7 @@ export default function ChatWindow({
           )}
 
           {mentionSuggestions.length > 0 && (
-            <div className="absolute bottom-20 left-36 w-64 overflow-hidden rounded-lg border border-slate-700 bg-slate-950 shadow-xl">
+            <div className="absolute bottom-16 left-3 right-3 overflow-hidden rounded-lg border border-slate-700 bg-slate-950 shadow-xl sm:bottom-20 sm:left-36 sm:right-auto sm:w-64">
               {mentionSuggestions.map((member) => (
                 <button
                   key={member._id}
@@ -355,7 +392,7 @@ export default function ChatWindow({
           )}
 
           {(selectedFile || fileError) && (
-            <div className="absolute bottom-20 right-6 max-w-xs rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm shadow-xl">
+            <div className="absolute bottom-16 left-3 right-3 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm shadow-xl sm:bottom-20 sm:left-auto sm:right-6 sm:max-w-xs">
               {selectedFile ? (
                 <div className="flex min-w-0 items-center gap-2 text-slate-200">
                   <span>📎</span>
@@ -382,7 +419,7 @@ export default function ChatWindow({
             type="button"
             onClick={() => setShowEmojiPicker((value) => !value)}
             title="Add emoji"
-            className="h-12 w-12 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800"
+            className="h-11 w-11 shrink-0 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800 sm:h-12 sm:w-12"
           >
             😊
           </button>
@@ -390,7 +427,7 @@ export default function ChatWindow({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Attach file"
-            className="h-12 w-12 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800"
+            className="h-11 w-11 shrink-0 rounded-md bg-slate-950 text-lg transition-colors hover:bg-slate-800 sm:h-12 sm:w-12"
           >
             📎
           </button>
@@ -405,12 +442,12 @@ export default function ChatWindow({
             value={input}
             onChange={handleInputChange}
             placeholder="Message or type @ to mention"
-            className="flex-1 bg-slate-950 text-white placeholder-slate-500 rounded-md px-4 py-3 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="min-w-0 flex-1 rounded-md bg-slate-950 px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:px-4"
           />
           <button
             type="submit"
             disabled={!input.trim() && !selectedFile}
-            className="w-12 h-12 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 rounded-md flex items-center justify-center transition-colors text-lg"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-lg transition-colors hover:bg-emerald-500 disabled:opacity-40 sm:h-12 sm:w-12"
           >
             ➤
           </button>

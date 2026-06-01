@@ -13,7 +13,7 @@ export const SocketProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   useEffect(() => {
-    if (!user) return; 
+    if (!user?.token) return; 
     socketRef.current = io(socketUrl, {
       auth: { token: user.token },
     });
@@ -36,7 +36,7 @@ export const SocketProvider = ({ children }) => {
     return () => {
       socketRef.current?.disconnect();
     };
-  }, [user]);
+  }, [user?.token]);
 
   return (
     <SocketContext.Provider

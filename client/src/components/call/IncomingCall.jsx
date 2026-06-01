@@ -3,7 +3,7 @@
 export default function IncomingCall({ caller, callType, onAccept, onReject }) {
   return (
     // Fixed overlay at bottom-right of screen
-    <div className="fixed bottom-8 right-8 z-50 bg-[#1a1a2e] border border-indigo-500 rounded-2xl p-6 shadow-2xl shadow-indigo-900/50 w-72">
+    <div className="fixed inset-x-3 bottom-3 z-50 rounded-xl border border-indigo-500 bg-[#1a1a2e] p-4 shadow-2xl shadow-indigo-900/50 sm:inset-x-auto sm:bottom-8 sm:right-8 sm:w-72 sm:rounded-2xl sm:p-6">
       <div className="text-center">
         {/* Pulsing ring animation */}
         <div className="relative w-16 h-16 mx-auto mb-3">
@@ -18,7 +18,7 @@ export default function IncomingCall({ caller, callType, onAccept, onReject }) {
           Incoming {callType} call...
         </p>
 
-        <div className="flex gap-3 mt-5">
+        <div className="mt-5 flex gap-3">
           {/* Accept — green */}
           <button
             onClick={onAccept}

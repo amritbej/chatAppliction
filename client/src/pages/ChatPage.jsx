@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import { useWebRTC } from "../hooks/useWebRTC";
 import Sidebar from "../components/chat/Sidebar";
 import ChatWindow from "../components/chat/ChatWindow";
@@ -12,6 +13,7 @@ import img from "../asset/kotha-202-logo.svg";
 
 export default function ChatPage() {
   const { user, logout, updateUser } = useAuth();
+  const { socket } = useSocket();
   const [activeRoom, setActiveRoom] = useState(null);
   const [rooms, setRooms] = useState([]);
 
@@ -39,18 +41,40 @@ export default function ChatPage() {
     fetchRooms();
   };
 
-  const handleProfileUpdated = (updatedUser) => {
-    updateUser(updatedUser);
-
-    const updateRoomMembers = (room) => ({
+  const updateRoomMembers = useCallback((updatedUser) => (room) => ({
       ...room,
       members: room.members?.map((member) =>
         member._id === updatedUser._id ? { ...member, ...updatedUser } : member
       ),
-    });
+    }), []);
 
-    setRooms((current) => current.map(updateRoomMembers));
-    setActiveRoom((current) => (current ? updateRoomMembers(current) : current));
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUserUpdated = (updatedUser) => {
+      setRooms((current) => current.map(updateRoomMembers(updatedUser)));
+      setActiveRoom((current) =>
+        current ? updateRoomMembers(updatedUser)(current) : current
+      );
+    };
+
+    socket.on("user:updated", handleUserUpdated);
+    return () => socket.off("user:updated", handleUserUpdated);
+  }, [socket, updateRoomMembers]);
+
+  const handleProfileUpdated = (updatedUser) => {
+    const refreshedUser = {
+      ...updatedUser,
+      avatarVersion: Date.now(),
+    };
+
+    updateUser(refreshedUser);
+    socket?.emit("user:profile-updated");
+
+    setRooms((current) => current.map(updateRoomMembers(refreshedUser)));
+    setActiveRoom((current) =>
+      current ? updateRoomMembers(refreshedUser)(current) : current
+    );
   };
 
   const handleMessageReceived = useCallback((message) => {
@@ -69,7 +93,7 @@ export default function ChatPage() {
 
 
   return (
-    <div className="h-screen bg-slate-950 flex overflow-hidden">
+    <div className="flex h-[100dvh] overflow-hidden bg-slate-950">
       <Sidebar
         rooms={rooms}
         activeRoom={activeRoom}
@@ -81,13 +105,18 @@ export default function ChatPage() {
         onLogout={logout}
       />
 
-      <main className="flex-1 flex flex-col">
+      <main
+        className={`min-w-0 flex-1 flex-col ${
+          activeRoom ? "flex" : "hidden md:flex"
+        }`}
+      >
         {activeRoom ? (
           <ChatWindow
             room={activeRoom}
             currentUser={user}
             onStartCall={webRTC.startCall}
             onMessageReceived={handleMessageReceived}
+            onBack={() => setActiveRoom(null)}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center px-6 text-slate-500">

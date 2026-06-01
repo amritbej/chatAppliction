@@ -7,7 +7,16 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
 
-body { background: #020617; color: #e2e8f0; }
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: #020617;
+  color: #e2e8f0;
+}
 
 .kotha-logo-card {
   position: relative;

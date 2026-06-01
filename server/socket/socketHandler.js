@@ -49,6 +49,14 @@ const getPopulatedMessage = (messageId) =>
       populate: { path: "sender", select: "username avatar" },
     });
 
+const formatSocketUser = (user) => ({
+  _id: user._id,
+  username: user.username,
+  avatar: user.avatar,
+  isOnline: user.isOnline,
+  avatarVersion: Date.now(),
+});
+
 const setupSocket = (io) => {
   // ── Authentication middleware for sockets ─────────────────────────────────
   // Verify JWT token before allowing any socket connection
@@ -186,6 +194,18 @@ const setupSocket = (io) => {
 
     socket.on("typing:stop", ({ roomId }) => {
       socket.to(roomId).emit("typing:stop", { userId });
+    });
+
+    socket.on("user:profile-updated", async () => {
+      try {
+        const user = await User.findById(userId).select("username avatar isOnline");
+        if (!user) return;
+
+        socket.user = user;
+        io.emit("user:updated", formatSocketUser(user));
+      } catch (err) {
+        socket.emit("error", { message: err.message });
+      }
     });
 
     // ── WebRTC Signaling Events ───────────────────────────────────────────────

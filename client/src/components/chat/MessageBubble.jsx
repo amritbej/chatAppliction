@@ -56,7 +56,7 @@ export default function MessageBubble({ message, isOwn, onReply }) {
     >
       {!isOwn && <Avatar user={message.sender} size="xs" className="mt-5" />}
       <div
-        className={`max-w-xs lg:max-w-md ${
+        className={`max-w-[78vw] sm:max-w-xs lg:max-w-md ${
           isOwn ? "items-end" : "items-start"
         } flex flex-col`}
       >

@@ -31,7 +31,7 @@ export default function CallModal({
     };
 
     return (
-      <div className="relative min-h-40 overflow-hidden rounded-xl bg-slate-900">
+      <div className="relative min-h-36 overflow-hidden rounded-lg bg-slate-900 sm:min-h-40 sm:rounded-xl">
         <video
           ref={setRef}
           autoPlay
@@ -47,22 +47,21 @@ export default function CallModal({
 
   return (
     // Dark overlay covering the full screen
-    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
       {callState === "calling" && (
-        <div className="text-white text-center mb-8 animate-pulse">
-          <p className="text-2xl font-semibold">Calling...</p>
+        <div className="mb-6 animate-pulse text-center text-white sm:mb-8">
+          <p className="text-xl font-semibold sm:text-2xl">Calling...</p>
           <p className="text-slate-400 mt-2">Waiting for answer</p>
         </div>
       )}
 
-      {/* Video elements */}
       {callType === "video" && (
-        <div className="w-full max-w-5xl px-4">
-          <div className="grid max-h-[70vh] grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+        <div className="w-full max-w-5xl">
+          <div className="grid max-h-[72dvh] grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
             {remoteStreams.map((item) => (
               <RemoteVideo key={item.userId} item={item} />
             ))}
-            <div className="relative min-h-40 overflow-hidden rounded-xl bg-slate-900 ring-2 ring-indigo-500">
+            <div className="relative min-h-36 overflow-hidden rounded-lg bg-slate-900 ring-2 ring-indigo-500 sm:min-h-40 sm:rounded-xl">
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -80,15 +79,15 @@ export default function CallModal({
 
       
       {callType === "audio" && callState === "connected" && (
-        <div className="mb-8 grid max-w-2xl grid-cols-2 gap-4 px-4 sm:grid-cols-3">
-          <div className="flex h-28 w-28 flex-col items-center justify-center rounded-2xl border border-indigo-500 bg-indigo-600/30 text-white">
+        <div className="mb-6 grid max-h-[66dvh] max-w-2xl grid-cols-2 gap-3 overflow-y-auto sm:mb-8 sm:grid-cols-3 sm:gap-4">
+          <div className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-indigo-500 bg-indigo-600/30 text-white sm:h-28 sm:w-28 sm:rounded-2xl">
             <span className="text-4xl">🎙️</span>
             <span className="mt-2 max-w-20 truncate text-xs">You</span>
           </div>
           {remoteStreams.map((item) => (
             <div
               key={item.userId}
-              className="flex h-28 w-28 flex-col items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 text-white"
+              className="flex h-24 w-24 flex-col items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-white sm:h-28 sm:w-28 sm:rounded-2xl"
             >
               <span className="text-4xl">🎧</span>
               <span className="mt-2 max-w-20 truncate text-xs">
@@ -105,10 +104,10 @@ export default function CallModal({
       )}
 
       {/* Controls */}
-      <div className="flex gap-4 mt-6">
+      <div className="mt-5 flex shrink-0 gap-3 sm:mt-6 sm:gap-4">
         <button
           onClick={handleMute}
-          className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-colors ${
+          className={`flex h-12 w-12 items-center justify-center rounded-full text-xl transition-colors sm:h-14 sm:w-14 ${
             muted ? "bg-red-600" : "bg-slate-700 hover:bg-slate-600"
           }`}
           title={muted ? "Unmute" : "Mute"}
@@ -119,7 +118,7 @@ export default function CallModal({
         {callType === "video" && (
           <button
             onClick={handleVideo}
-            className={`w-14 h-14 rounded-full flex items-center justify-center text-xl transition-colors ${
+            className={`flex h-12 w-12 items-center justify-center rounded-full text-xl transition-colors sm:h-14 sm:w-14 ${
               videoOff ? "bg-red-600" : "bg-slate-700 hover:bg-slate-600"
             }`}
             title={videoOff ? "Turn on camera" : "Turn off camera"}
@@ -131,7 +130,7 @@ export default function CallModal({
         {/* Red hang-up button */}
         <button
           onClick={onEndCall}
-          className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center text-xl transition-colors"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-xl transition-colors hover:bg-red-700 sm:h-14 sm:w-14"
           title="End call"
         >
           📵

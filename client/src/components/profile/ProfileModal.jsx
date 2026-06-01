@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Avatar from "../common/Avatar";
 import api from "../../utils/api";
 
@@ -10,6 +10,11 @@ export default function ProfileModal({ user, onClose, onUpdated }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    setUsername(user.username || "");
+    setAvatar(user.avatar || "");
+  }, [user]);
 
   const handleFile = (event) => {
     const file = event.target.files?.[0];
@@ -53,10 +58,10 @@ export default function ProfileModal({ user, onClose, onUpdated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-3 py-4">
       <form
         onSubmit={saveProfile}
-        className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-950 p-5 shadow-2xl"
+        className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-950 p-4 shadow-2xl sm:p-5"
       >
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -73,9 +78,9 @@ export default function ProfileModal({ user, onClose, onUpdated }) {
           </button>
         </div>
 
-        <div className="mb-5 flex items-center gap-4">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center">
           <Avatar user={{ username, avatar }} size="xl" />
-          <div className="min-w-0 flex-1 space-y-2">
+          <div className="min-w-0 flex-1 space-y-2 self-stretch">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
