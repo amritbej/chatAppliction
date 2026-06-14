@@ -75,6 +75,7 @@ const setupSocket = (io) => {
     }
 
     socket.broadcast.emit("user:online", userId);
+    socket.emit("user:online-list", Array.from(onlineUsers.keys()));
 
     socket.on("room:join", (roomId) => {
       socket.join(roomId);

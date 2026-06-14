@@ -22,7 +22,10 @@ export const SocketProvider = ({ children }) => {
     socketRef.current.on("connect", () => setIsConnected(true));
     socketRef.current.on("disconnect", () => setIsConnected(false));
 
-    
+    socketRef.current.on("user:online-list", (userIds) => {
+      setOnlineUsers(new Set(userIds));
+    });
+
     socketRef.current.on("user:online", (userId) => {
       setOnlineUsers((prev) => new Set([...prev, userId]));
     });
