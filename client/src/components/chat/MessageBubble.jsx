@@ -53,7 +53,7 @@ export default function MessageBubble({ message, isOwn, onReply }) {
     <div
       className={`group flex gap-2 ${isOwn ? "justify-end" : "justify-start"}`}
     >
-      {!isOwn && <Avatar user={message.sender} size="xs" className="mt-5" />}
+      {!isOwn && <Avatar user={message.sender} size="xs" className="mt-5 shrink-0" />}
       <div
         className={`max-w-[78vw] sm:max-w-xs lg:max-w-md ${
           isOwn ? "items-end" : "items-start"
@@ -138,6 +138,7 @@ export default function MessageBubble({ message, isOwn, onReply }) {
           </button>
         </div>
       </div>
+      {isOwn && <Avatar user={message.sender} size="xs" className="mt-1 shrink-0" />}
     </div>
   );
 }

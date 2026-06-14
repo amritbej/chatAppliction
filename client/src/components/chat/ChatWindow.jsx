@@ -324,14 +324,19 @@ export default function ChatWindow({
       </div>
 
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg._id}
-            message={msg}
-            isOwn={msg.sender._id === currentUser._id}
-            onReply={startReply}
-          />
-        ))}
+        {messages.map((msg) => {
+          const senderId = msg.sender?._id || msg.sender;
+          const currentUserId = currentUser?._id || currentUser;
+          const isOwnMessage = senderId && currentUserId && senderId.toString() === currentUserId.toString();
+          return (
+            <MessageBubble
+              key={msg._id}
+              message={msg}
+              isOwn={isOwnMessage}
+              onReply={startReply}
+            />
+          );
+        })}
 
         {typing && (
           <div className="text-slate-400 text-sm italic">
