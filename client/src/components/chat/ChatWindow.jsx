@@ -290,24 +290,37 @@ export default function ChatWindow({
           </div>
         </div>
 
-        {canCall && (
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={() => startRoomCall("audio")}
-              title="Audio call"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-lg transition-colors hover:bg-emerald-700"
-            >
-              📞
-            </button>
-            <button
-              onClick={() => startRoomCall("video")}
-              title="Video call"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-lg transition-colors hover:bg-emerald-700"
-            >
-              📹
-            </button>
-          </div>
-        )}
+        <div className="flex shrink-0 gap-2">
+          <button
+            onClick={() => startRoomCall("audio")}
+            disabled={!canCall}
+            title={canCall ? "Audio call" : "User is offline"}
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+              canCall
+                ? "bg-slate-800 text-slate-200 hover:bg-emerald-700 hover:text-white"
+                : "bg-slate-900 text-slate-600 cursor-not-allowed opacity-40"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.18.283-.105.432a10.982 10.982 0 0 0 5.86 5.86c.15.074.331.03.432-.105l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <button
+            onClick={() => startRoomCall("video")}
+            disabled={!canCall}
+            title={canCall ? "Video call" : "User is offline"}
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+              canCall
+                ? "bg-slate-800 text-slate-200 hover:bg-emerald-700 hover:text-white"
+                : "bg-slate-900 text-slate-600 cursor-not-allowed opacity-40"
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path d="M4.5 4.5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h8.25a3 3 0 0 0 3-3V7.5a3 3 0 0 0-3-3H4.5Z" />
+              <path d="M19.125 7.904c-.397-.24-.875-.018-.875.447v7.298c0 .465.478.687.875.447l3.75-2.25a.525.525 0 0 0 0-.894l-3.75-2.25Z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
