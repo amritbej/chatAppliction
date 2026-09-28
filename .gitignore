@@ -45,3 +45,8 @@ Thumbs.db
 !.vscode/settings.json
 .idea/
 
+# Local uploads and mobile caches
+uploads/
+server/uploads/
+.expo/
+

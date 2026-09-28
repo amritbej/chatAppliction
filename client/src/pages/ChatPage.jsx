@@ -7,9 +7,6 @@ import ChatWindow from "../components/chat/ChatWindow";
 import CallModal from "../components/call/CallModal";
 import IncomingCall from "../components/call/IncomingCall";
 import api from "../utils/api";
-import img from "../asset/kotha-202-logo.svg";
-
-
 
 export default function ChatPage() {
   const { user, logout, updateUser } = useAuth();
@@ -24,29 +21,43 @@ export default function ChatPage() {
   }, []);
 
   const fetchRooms = async () => {
-    const { data } = await api.get("/rooms");
-    setRooms(data);
+    try {
+      const { data } = await api.get("/rooms");
+      setRooms(data);
+    } catch (err) {
+      console.error("Failed to fetch rooms", err);
+    }
   };
 
-  
   const openChat = async (targetUserId) => {
-    const { data } = await api.post("/rooms", { userId: targetUserId });
-    setActiveRoom(data);
-    fetchRooms();
+    try {
+      const { data } = await api.post("/rooms", { userId: targetUserId });
+      setActiveRoom(data);
+      fetchRooms();
+    } catch (err) {
+      console.error("Failed to open chat", err);
+    }
   };
 
   const createGroup = async ({ name, userIds }) => {
-    const { data } = await api.post("/rooms", { name, userIds });
-    setActiveRoom(data);
-    fetchRooms();
+    try {
+      const { data } = await api.post("/rooms", { name, userIds });
+      setActiveRoom(data);
+      fetchRooms();
+    } catch (err) {
+      console.error("Failed to create group", err);
+    }
   };
 
-  const updateRoomMembers = useCallback((updatedUser) => (room) => ({
+  const updateRoomMembers = useCallback(
+    (updatedUser) => (room) => ({
       ...room,
       members: room.members?.map((member) =>
         member._id === updatedUser._id ? { ...member, ...updatedUser } : member
       ),
-    }), []);
+    }),
+    []
+  );
 
   useEffect(() => {
     if (!socket) return;
@@ -91,9 +102,8 @@ export default function ChatPage() {
     );
   }, []);
 
-
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-slate-950">
+    <div className="flex h-[100dvh] overflow-hidden bg-slate-950 font-sans">
       <Sidebar
         rooms={rooms}
         activeRoom={activeRoom}
@@ -119,28 +129,47 @@ export default function ChatPage() {
             onBack={() => setActiveRoom(null)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center px-6 text-slate-500">
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={fetchRooms}
-                className="kotha-logo-card group mx-auto mb-7 flex h-44 w-44 items-center justify-center rounded-full outline-none transition duration-500 hover:-translate-y-1 hover:scale-105 focus-visible:ring-4 focus-visible:ring-cyan-300/30 active:scale-95 sm:h-56 sm:w-56"
-                aria-label="Refresh chats"
-              >
-                <img
-                  src={img}
-                  alt="Kotha 202 logo"
-                  className="relative h-full w-full rounded-full bg-slate-950 object-cover drop-shadow-2xl transition duration-500 group-hover:rotate-3 group-hover:scale-110"
-                />
-              </button>
-              <p className="text-xl font-semibold tracking-wide text-slate-100 sm:text-2xl">
-                kotha-202-connect
+          <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+            <div className="max-w-md space-y-6">
+              {/* Modern Brand Icon (No Logo) */}
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-xl shadow-emerald-950/60 text-3xl text-white">
+                💬
+              </div>
+
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                  ChatApp & Payments
+                </h1>
+                <p className="mt-2 text-sm text-slate-400">
+                  Real-time messaging, WebRTC calling, and instant peer-to-peer payments.
+                </p>
+              </div>
+
+              {/* Quick Feature Highlights */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-left">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                  <div className="text-emerald-400 text-lg mb-1 font-bold">⚡ Fast</div>
+                  <p className="text-xs text-slate-400">Instant messaging powered by Socket.IO</p>
+                </div>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                  <div className="text-emerald-400 text-lg mb-1 font-bold">₹ Payments</div>
+                  <p className="text-xs text-slate-400">Send money directly inside any conversation</p>
+                </div>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+                  <div className="text-emerald-400 text-lg mb-1 font-bold">📞 Calling</div>
+                  <p className="text-xs text-slate-400">Encrypted WebRTC voice and video calls</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Select a conversation from the sidebar or start a new chat in the People tab.
               </p>
             </div>
           </div>
         )}
       </main>
 
+      {/* Calling Modals */}
       {(webRTC.callState === "calling" || webRTC.callState === "connected") && (
         <CallModal
           callState={webRTC.callState}

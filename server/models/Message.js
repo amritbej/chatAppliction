@@ -1,16 +1,18 @@
-
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
     room: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Room",
       required: true,
+      index: true,
     },
     sender: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
+      index: true,
     },
     content: {
       type: String,
@@ -19,7 +21,7 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["text", "image", "file"], 
+      enum: ["text", "image", "file", "payment"],
       default: "text",
     },
     fileName: {
@@ -33,6 +35,10 @@ const messageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    fileUrl: {
+      type: String,
+      trim: true,
+    },
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
@@ -43,8 +49,92 @@ const messageSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    // Payment integration: references the Transaction
+    payment: {
+      transactionId: {
+        type: String,
+      },
+      amount: {
+        type: Number, // Minor units (paise)
+      },
+      currency: {
+        type: String,
+        default: "INR",
+      },
+      status: {
+        type: String,
+        enum: [
+          "created",
+          "pending",
+          "processing",
+          "success",
+          "failed",
+          "cancelled",
+          "refunded",
+        ],
+      },
+      note: {
+        type: String,
+        default: "",
+      },
+    },
+    // Message features
+    reactions: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        emoji: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+    editedAt: {
+      type: Date,
+      default: null,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedFor: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    readBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    deliveredTo: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );
+
+// Indexes for fast paginated queries
+messageSchema.index({ room: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Message", messageSchema);

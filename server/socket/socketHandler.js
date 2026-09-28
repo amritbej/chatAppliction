@@ -1,9 +1,9 @@
-
-
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Message = require("../models/Message");
 const Room = require("../models/Room");
+const paymentService = require("../services/payments/paymentService");
+const { setSocketIO } = require("../controllers/messageController");
 
 const onlineUsers = new Map();
 const activeRoomCalls = new Map();
@@ -38,7 +38,8 @@ const getPopulatedMessage = (messageId) =>
       path: "replyTo",
       select: "content type fileName sender",
       populate: { path: "sender", select: "username avatar" },
-    });
+    })
+    .populate("reactions.user", "username avatar");
 
 const formatSocketUser = (user) => ({
   _id: user._id,
@@ -49,6 +50,10 @@ const formatSocketUser = (user) => ({
 });
 
 const setupSocket = (io) => {
+  // Bind io to services
+  paymentService.setSocketIO(io);
+  setSocketIO(io);
+
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -68,6 +73,9 @@ const setupSocket = (io) => {
     console.log(`🟢 ${socket.user.username} connected`);
 
     onlineUsers.set(userId, socket.id);
+    // Join personal user room for direct events
+    socket.join(`user_${userId}`);
+
     try {
       await User.findByIdAndUpdate(userId, { isOnline: true });
     } catch (err) {
@@ -85,6 +93,29 @@ const setupSocket = (io) => {
       socket.leave(roomId);
     });
 
+    // Mark messages as read
+    socket.on("messages:read", async ({ roomId, messageIds = [] }) => {
+      try {
+        if (!roomId) return;
+        await Message.updateMany(
+          {
+            room: roomId,
+            _id: { $in: messageIds },
+            readBy: { $ne: userId },
+          },
+          { $addToSet: { readBy: userId } }
+        );
+
+        socket.to(roomId).emit("messages:read-receipt", {
+          roomId,
+          readBy: userId,
+          messageIds,
+        });
+      } catch (err) {
+        console.error("Error updating read receipts:", err.message);
+      }
+    });
+
     socket.on(
       "message:send",
       async ({
@@ -94,8 +125,10 @@ const setupSocket = (io) => {
         fileName,
         fileSize,
         mimeType,
+        fileUrl,
         replyTo,
         mentions = [],
+        payment,
       }) => {
         try {
           const room = await Room.findById(roomId);
@@ -106,17 +139,17 @@ const setupSocket = (io) => {
             throw new Error("You are not a member of this room");
           }
 
-          const allowedTypes = ["text", "image", "file"];
+          const allowedTypes = ["text", "image", "file", "payment"];
           const messageType = allowedTypes.includes(type) ? type : "text";
           const trimmedContent =
             messageType === "text" ? content?.trim() : content;
 
-          if (!trimmedContent) {
+          if (!trimmedContent && messageType !== "payment") {
             throw new Error("Message cannot be empty");
           }
 
-          if (messageType !== "text" && fileSize > 5 * 1024 * 1024) {
-            throw new Error("Files must be 5MB or smaller");
+          if (messageType !== "text" && messageType !== "payment" && fileSize > 10 * 1024 * 1024) {
+            throw new Error("Files must be 10MB or smaller");
           }
 
           let replyToId = null;
@@ -144,13 +177,17 @@ const setupSocket = (io) => {
           const message = await Message.create({
             room: roomId,
             sender: userId,
-            content: trimmedContent,
+            content: trimmedContent || (payment ? `Payment of ₹${(payment.amount / 100).toFixed(2)}` : "File"),
             type: messageType,
             fileName,
             fileSize,
             mimeType,
+            fileUrl,
             replyTo: replyToId,
             mentions: mentionIds,
+            payment: payment || undefined,
+            readBy: [userId],
+            deliveredTo: [userId],
           });
 
           const populated = await getPopulatedMessage(message._id);
@@ -187,6 +224,9 @@ const setupSocket = (io) => {
       }
     });
 
+    // ==========================================
+    // WebRTC Calling Signaling (1-to-1 & Group)
+    // ==========================================
     socket.on("call:offer", ({ to, offer, callType }) => {
       if (!to || !offer) {
         socket.emit("error", { message: "Invalid call offer" });

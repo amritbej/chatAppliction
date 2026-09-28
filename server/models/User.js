@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const { isValidEmail } = require("../utils/validators");
@@ -8,10 +7,28 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
-      unique: true,       
-      trim: true,      
+      unique: true,
+      trim: true,
       minlength: 3,
       maxlength: 24,
+      index: true,
+    },
+    displayName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: "",
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      default: "",
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: "",
     },
     email: {
       type: String,
@@ -23,6 +40,7 @@ const userSchema = new mongoose.Schema(
         validator: isValidEmail,
         message: "Please enter a valid email address",
       },
+      index: true,
     },
     password: {
       type: String,
@@ -58,23 +76,38 @@ const userSchema = new mongoose.Schema(
     passwordResetOtpExpires: Date,
     avatar: {
       type: String,
-      default: "", 
+      default: "",
     },
     isOnline: {
       type: Boolean,
-      default: false, 
+      default: false,
+      index: true,
     },
     lastSeen: {
       type: Date,
       default: Date.now,
     },
+    privacySettings: {
+      lastSeenVisibility: {
+        type: String,
+        enum: ["everyone", "contacts", "nobody"],
+        default: "everyone",
+      },
+      readReceipts: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    notificationSettings: {
+      messages: { type: Boolean, default: true },
+      calls: { type: Boolean, default: true },
+      payments: { type: Boolean, default: true },
+    },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
 
-
 userSchema.pre("save", async function (next) {
-  
   if (!this.password || !this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();

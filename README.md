@@ -1,179 +1,174 @@
-# ChatApp
+# ChatApp + Payments (Cross-Platform Communication & Financial Suite)
 
-A modern, real-time, full-stack chat application equipped with text/file messaging, WebRTC audio/video calls, and email OTP verification.
-
-🚀 **Live Site:** [https://chatappliction-i23b.onrender.com](https://chatappliction-i23b.onrender.com)  
-🖥️ **Backend API:** [https://chatappliction-m73z.onrender.com](https://chatappliction-m73z.onrender.com)
+A production-grade, full-stack, cross-platform communication and peer-to-peer (P2P) payments application. ChatApp combines real-time messaging, encrypted WebRTC voice/video calls, and seamless financial transactions directly inside chat rooms.
 
 ---
 
-## Features
+## 🚀 Key Capabilities
 
-### 💬 Real-Time Messaging
-* **Instant Delivery:** Message broadcasting powered by Socket.IO.
-* **Rich Media Support:** Send text, images, and attachments (up to 5MB).
-* **Threads & Replies:** Reply directly to specific messages.
-* **Mentions & Mentions Tracking:** Mention users in a room with `@username`.
-* **Typing Indicators:** Real-time feedback when other users are typing.
-* **User Status:** Live online/offline status indicators and last seen timestamps.
+### 💬 Real-Time Messaging & Chat
+* **Instant Delivery:** Sub-second Socket.IO message broadcasting.
+* **In-Chat P2P Payments:** Send money directly to contacts within any chat with live status updates.
+* **Rich Interactions:** Message emoji reactions (❤️, 👍, 😂, 🔥), swipe-to-reply, mentions tracking (`@username`), editing, pinning, and message deletion (for me / for everyone).
+* **Media & File Sharing:** Modular storage adapter (Local disk, AWS S3, Cloudinary) handling multipart uploads instead of base64 over websockets.
+* **Presence & Activity:** Live online/offline status indicators, last seen timestamps, and typing indicators.
 
-### 📞 WebRTC Audio/Video Calls
+### 💳 Secure In-Chat Payments (Razorpay Sandbox & Provider Abstraction)
+* **Never Trust Client Success:** All transactions undergo server-side HMAC-SHA256 signature verification or webhook confirmation before being marked `success`.
+* **Integer Minor Currency Units:** Financial amounts are strictly stored in minor units (paise for INR, e.g. ₹500 = `50000`) eliminating floating-point rounding bugs.
+* **Transaction State Machine:** Explicit transitions: `created` → `pending` → `processing` → `success` / `failed` / `cancelled` / `refunded`.
+* **Idempotency & Replay Protection:** Enforces idempotency keys and database uniqueness on `providerOrderId` and `providerPaymentId`.
+* **Wallet / Transaction History:** Filter by sent, received, or all transactions with aggregate statistics.
+
+### 📞 WebRTC Audio & Video Calling
 * Peer-to-peer direct audio/video calling.
-* Group call capabilities for up to 15 participants in a chat room.
-* Socket.IO-based signaling server for WebRTC handshake configuration.
+* Group calls for up to 15 members in chat rooms.
+* Socket.IO-based signaling server with STUN configuration.
 
-### 🔐 Secure Authentication
-* **Local Auth:** Traditional sign-up and login using email/password.
-* **OTP Verification:** Registration email verification using secure, timed OTPs sent via SMTP.
-* **Password Recovery:** Forgotten password resets authenticated by email OTP verification.
-* **OAuth 2.0:** One-click registration/login with Google OAuth (via Passport.js).
-
-### 👤 Profile Customization
-* Upload and customize user avatar pictures.
-* Real-time avatar updates propagated instantly to active chats.
+### 🔐 Security & Hardened Architecture
+* **Helmet HTTP Security Headers** & CORS restriction policy.
+* **Granular Rate Limiters:** Distinct rate windows for general API endpoints, authentication, and financial operations.
+* **Password Hashing & OTP:** Bcrypt.js with salt work factor of 10 and timed SHA-256 hashed OTPs.
+* **Centralized Error Handling:** Consistent `{ success, data, error: { code, message } }` envelopes without internal stack traces in production.
+* **Health Check Endpoint:** `GET /health` monitoring database connectivity, uptime, and server health.
 
 ---
 
-## Technology Stack
+## 📱 Cross-Platform Support
 
-### Frontend (Client)
-* **Framework:** React.js (Vite)
-* **Styling:** Tailwind CSS, PostCSS
-* **Routing:** React Router DOM
-* **State & Networking:** Axios, React Context API
-* **WebSockets:** Socket.io-client
-* **P2P Connection:** WebRTC API (STUN servers)
-
-### Backend (Server)
-* **Runtime:** Node.js (Express)
-* **Database:** MongoDB (using Mongoose ODM)
-* **Authentication:** Passport.js (Google Strategy), JSON Web Tokens (JWT), Bcrypt.js
-* **Real-time Engine:** Socket.IO
-* **Email Transporter:** Nodemailer
+| Platform | Technology | Directory |
+| :--- | :--- | :--- |
+| **Backend API & Sockets** | Node.js, Express, MongoDB, Socket.IO, Razorpay | `server/` |
+| **Web Client** | React 18, Vite, Tailwind CSS | `client/` |
+| **Mobile App (Android/iOS/Web)** | React Native, Expo SDK 52, Expo Router, TypeScript | `mobile/` |
 
 ---
 
-## Directory Structure
+## 🛠️ Directory Structure
 
 ```text
-├── client/                     # Frontend Vite + React application
-│   ├── dist/                   # Production build outputs
-│   ├── public/                 # Static assets (favicons, etc.)
+├── client/                     # Vite + React web application
 │   ├── src/
-│   │   ├── asset/              # SVGs, images, logos
-│   │   ├── components/         # Reusable React components
-│   │   │   ├── call/           # WebRTC Call modals and widgets
-│   │   │   ├── chat/           # Chat window, sidebar, message bubble
-│   │   │   ├── common/         # Common UI components (e.g. Avatar)
-│   │   │   └── profile/        # User profile customization modal
-│   │   ├── context/            # React Auth and Socket contexts
-│   │   ├── hooks/              # Custom React hooks (WebRTC hook)
-│   │   ├── pages/              # Application pages (Chat, Login, Verify, etc.)
-│   │   ├── utils/              # Axios instance and API configuration
-│   │   ├── App.jsx             # React Routes and app assembly
-│   │   ├── index.css           # Global CSS and Tailwind directives
-│   │   └── main.jsx            # React entrypoint
-│   ├── package.json
-│   ├── tailwind.config.js      # Tailwind UI design configuration
-│   └── vite.config.js          # Vite configuration and local Proxy settings
-│
-├── server/                     # Backend Node.js Express server
-│   ├── config/                 # Mongoose Database & Passport OAuth setups
-│   ├── controllers/            # Core business logic handlers (Auth, Messages, Rooms)
-│   ├── middleware/             # Route protections and custom middleware
-│   ├── models/                 # Mongoose schemas (User, Message, Room)
-│   ├── routes/                 # Express API endpoints
-│   ├── socket/                 # Socket.IO connection and event handler
-│   ├── utils/                  # Mailer transporter, OTP, and validation helpers
-│   ├── .env                    # Local environment secrets (ignored by Git)
-│   ├── index.js                # App server entrypoint
+│   │   ├── components/         # ChatWindow, Sidebar, MessageBubble, CallModal, PaymentModals
+│   │   ├── context/            # AuthContext, SocketContext
+│   │   ├── hooks/              # useWebRTC
+│   │   └── pages/              # ChatPage, LoginPage, RegisterPage, VerifyEmailPage
 │   └── package.json
 │
+├── mobile/                     # React Native / Expo cross-platform mobile application
+│   ├── app/                    # Expo Router file-based screens
+│   │   ├── (auth)/             # login, register, verify-email, forgot-password
+│   │   ├── (tabs)/             # chats, payments, people, settings
+│   │   ├── chat/[roomId].tsx   # Real-time chat & payment bubble screen
+│   │   └── payment/            # send, [transactionId]
+│   ├── src/
+│   │   ├── services/api/       # Typed API client (authApi, paymentApi, roomApi, etc.)
+│   │   ├── context/            # Mobile AuthContext, SocketContext, CallContext
+│   │   └── types/              # Complete TypeScript interfaces
+│   ├── app.json
+│   └── package.json
+│
+├── server/                     # Express.js REST API & Socket.IO server
+│   ├── config/                 # Database & Passport OAuth
+│   ├── controllers/            # auth, message, room, user, payment, webhook
+│   ├── middleware/             # errorHandler, rateLimiter, validate, authorize, auth
+│   ├── models/                 # User, Room, Message, Transaction, Notification, etc.
+│   ├── routes/                 # Express API routes
+│   ├── services/
+│   │   ├── payments/           # RazorpayProvider, MockProvider, PaymentService, WebhookService
+│   │   └── storage/            # LocalStorage, S3Storage, CloudinaryStorage adapters
+│   ├── socket/                 # Socket.IO handlers
+│   └── tests/                  # Automated backend test suites
+│
+├── docs/                       # In-depth architectural & deployment documentation
+│   ├── architecture.md
+│   ├── payments.md
+│   ├── mobile.md
+│   ├── security.md
+│   └── deployment.md
+│
+├── .env.example                # Sample environment configuration
 └── README.md
 ```
 
 ---
 
-## Configuration & Environment Setup
+## ⚙️ Environment Configuration
 
-### 1. Server Environment (`server/.env`)
-Create a `.env` file inside the `server/` directory and configure the following variables:
+Copy `.env.example` into `server/.env` and configure your settings:
 
 ```env
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
+NODE_ENV=development
+MONGO_URI=mongodb://localhost:27017/chatapp
 JWT_SECRET=your_jwt_secret_key
-SESSION_SECRET=your_express_session_secret
+SESSION_SECRET=your_session_secret
 
-# URLs (Local Development defaults)
 CLIENT_URL=http://localhost:5173
 SERVER_URL=http://localhost:5000
 
-# Google OAuth Credentials
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+# Payments (Options: "razorpay" or "mock" for test sandbox)
+PAYMENT_PROVIDER=mock
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
 
-# SMTP Mail Server Settings (Nodemailer)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your_email_address
-SMTP_PASS=your_email_app_password
-EMAIL_FROM=your_email_address
+# Storage (Options: "local", "s3", "cloudinary")
+STORAGE_PROVIDER=local
 ```
-
-### 2. Client Environment
-For local development, Vite uses the proxy configured in `vite.config.js` to route `/api` requests to the local server (`http://localhost:5000`).
-
-For production deployments, the frontend requires the backend URL. You can set the backend API domain using:
-* `VITE_API_ORIGIN` = `https://chatappliction-m73z.onrender.com`
-
-*Note: The frontend code falls back to `https://chatappliction-m73z.onrender.com` automatically in production environments if this variable is not explicitly specified.*
 
 ---
 
-## Local Development Installation
+## 💻 Local Development Setup
 
-### Step 1: Clone the repository
-```bash
-git clone <repository_url>
-cd chatapp
-```
-
-### Step 2: Set up the Backend
+### 1. Server Setup
 ```bash
 cd server
 npm install
-# Configure your .env file here
 npm run dev
+# Server runs on http://localhost:5000 (Health check: http://localhost:5000/health)
 ```
 
-### Step 3: Set up the Frontend
+### 2. Web Client Setup
 ```bash
-cd ../client
+cd client
 npm install
 npm run dev
+# Web application opens on http://localhost:5173
 ```
-Open your browser to `http://localhost:5173`.
+
+### 3. Mobile Client Setup (Expo)
+```bash
+cd mobile
+npm install
+npx expo start
+# Scan the QR code with Expo Go (Android/iOS) or press 'w' to run in the web browser
+```
 
 ---
 
-## Production Deployment on Render
+## 🧪 Testing & Verification
 
-### Backend Web Service
-1. **Repository root:** Deploy the `server/` subfolder.
-2. **Build Command:** `npm install`
-3. **Start Command:** `node index.js`
-4. Set up the environment variables in the Render console as described in the configuration section above. Keep `NODE_ENV` as `production`.
+### Run Backend Automated Tests
+```bash
+npm --prefix server test
+```
 
-### Frontend Static Site
-1. **Repository root:** Deploy the `client/` subfolder.
-2. **Build Command:** `npm run build`
-3. **Publish directory:** `dist`
-4. **Environment Variables:** Set `VITE_API_ORIGIN` to your backend URL (`https://chatappliction-m73z.onrender.com`).
-5. **Rewrites/Redirects Configuration (SPA routing support):**
-   To support client-side routing and prevent `404 Not Found` errors on direct page refreshes or OAuth redirects, add the following rewrite rule in Render:
-   * **Source:** `/*`
-   * **Destination:** `/index.html`
-   * **Action:** `Rewrite`
+### Run Mobile TypeScript Check
+```bash
+npm --prefix mobile run typecheck
+```
+
+### Build Web Client for Production
+```bash
+npm --prefix client run build
+```
+
+---
+
+## 📚 Documentation
+- [System Architecture](docs/architecture.md)
+- [Payment System & Razorpay Integration](docs/payments.md)
+- [Mobile Application Guide](docs/mobile.md)
+- [Security Architecture](docs/security.md)
+- [Deployment Guide](docs/deployment.md)
