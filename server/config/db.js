@@ -1,4 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
+const { execSync } = require("child_process");
 require("dotenv").config();
 
 let prismaInstance = null;
@@ -23,6 +24,17 @@ const connectDB = async () => {
     console.error("👉 If running locally:");
     console.error("   Add DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chatapp in server/.env");
     process.exit(1);
+  }
+
+  // Automatically sync schema on startup so tables exist in PostgreSQL
+  try {
+    console.log("🔄 Ensuring PostgreSQL database tables are synced...");
+    execSync("npx prisma db push --skip-generate", {
+      stdio: "inherit",
+      env: process.env,
+    });
+  } catch (syncErr) {
+    console.warn("⚠️ Prisma schema sync notice:", syncErr.message);
   }
 
   const prisma = getPrisma();
