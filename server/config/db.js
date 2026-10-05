@@ -1,24 +1,45 @@
-const mongoose = require("mongoose");
+const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
+
+let prismaInstance = null;
+
+const getPrisma = () => {
+  if (!prismaInstance) {
+    prismaInstance = new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    });
+  }
+  return prismaInstance;
+};
+
 const connectDB = async () => {
-  const uri = process.env.MONGO_URI;
-  if (!uri) {
-    console.error("❌ Fatal Error: MONGO_URI environment variable is not defined!");
-    console.error("👉 If running on Render, go to your Web Service -> Environment -> add MONGO_URI.");
-    console.error("👉 If running locally, check that your server/.env file contains MONGO_URI.");
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.error("❌ Fatal Error: DATABASE_URL environment variable is not defined!");
+    console.error("👉 If running on Render:");
+    console.error("   1. Create a PostgreSQL database in your Render dashboard (it is free).");
+    console.error("   2. Copy the 'Internal Database URL' from your Render PostgreSQL instance.");
+    console.error("   3. Go to your Web Service -> Environment -> add DATABASE_URL=<copied-url>");
+    console.error("👉 If running locally:");
+    console.error("   Add DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chatapp in server/.env");
     process.exit(1);
   }
 
+  const prisma = getPrisma();
   try {
-    await mongoose.connect(uri);
-    console.log("✅ MongoDB connected successfully");
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("✅ PostgreSQL connected successfully via Prisma");
+    return prisma;
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
-    if (err.message.includes("whitelist") || err.message.includes("querySrv") || err.message.includes("ETIMEOUT")) {
-      console.error("👉 Please ensure MongoDB Atlas -> Network Access allows 0.0.0.0/0 (all IPs) for Render.");
-    }
-    process.exit(1); 
+    console.error("❌ PostgreSQL connection failed:", err.message);
+    process.exit(1);
   }
 };
 
-module.exports = connectDB;
+const prisma = getPrisma();
+
+module.exports = {
+  connectDB,
+  getPrisma,
+  prisma,
+};

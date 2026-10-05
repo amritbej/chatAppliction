@@ -8,9 +8,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const session = require("express-session");
 const passport = require("passport");
-const mongoose = require("mongoose");
 
-const connectDB = require("./config/db");
+const { connectDB, prisma } = require("./config/db");
 const { configurePassport } = require("./config/passport");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -95,11 +94,19 @@ app.use(
 app.use(passport.initialize());
 
 // Health Check
-app.get("/health", (req, res) => {
-  const isDbConnected = mongoose.connection.readyState === 1;
+app.get("/health", async (req, res) => {
+  let isDbConnected = false;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    isDbConnected = true;
+  } catch {
+    isDbConnected = false;
+  }
+
   res.status(isDbConnected ? 200 : 503).json({
     status: isDbConnected ? "ok" : "degraded",
     database: isDbConnected ? "connected" : "disconnected",
+    databaseEngine: "postgresql",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
@@ -142,7 +149,7 @@ if (process.env.NODE_ENV !== "test") {
       });
     })
     .catch((err) => {
-      console.error("❌ MongoDB connection failed:", err);
+      console.error("❌ Database connection failed:", err);
       process.exit(1);
     });
 }

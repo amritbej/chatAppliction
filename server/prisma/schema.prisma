@@ -1,0 +1,264 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                         String    @id @default(uuid())
+  username                   String    @unique
+  displayName                String    @default("")
+  bio                        String    @default("")
+  phoneNumber                String    @default("")
+  email                      String    @unique
+  password                   String?
+  googleId                   String?   @unique
+  authProvider               String    @default("local")
+  isEmailVerified            Boolean   @default(false)
+  emailVerificationOtpHash   String?
+  emailVerificationOtpExpires DateTime?
+  passwordResetOtpHash       String?
+  passwordResetOtpExpires    DateTime?
+  avatar                     String    @default("")
+  isOnline                   Boolean   @default(false)
+  lastSeen                   DateTime  @default(now())
+  privacySettings            Json      @default("{\"lastSeenVisibility\":\"everyone\",\"readReceipts\":true}")
+  notificationSettings       Json      @default("{\"messages\":true,\"calls\":true,\"payments\":true}")
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  roomMemberships            RoomMember[]
+  sentMessages               Message[]          @relation("MessageSender")
+  mentions                   MessageMention[]
+  reactions                  MessageReaction[]
+  readMessages               MessageReadBy[]
+  deletedMessages            MessageDeletedFor[]
+  sentTransactions           Transaction[]      @relation("TransactionSender")
+  receivedTransactions       Transaction[]      @relation("TransactionRecipient")
+  notifications              Notification[]
+  blockedUsers               BlockedUser[]      @relation("UserBlocks")
+  blockedByUsers             BlockedUser[]      @relation("UserBlockedBy")
+  deviceSessions             DeviceSession[]
+  filedReports               Report[]           @relation("ReporterUser")
+  targetedReports            Report[]           @relation("ReportedUser")
+
+  @@index([username])
+  @@index([email])
+  @@index([isOnline])
+}
+
+model Room {
+  id            String        @id @default(uuid())
+  name          String?
+  isGroup       Boolean       @default(false)
+  lastMessageId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  members       RoomMember[]
+  messages      Message[]
+  transactions  Transaction[]
+
+  @@index([updatedAt])
+}
+
+model RoomMember {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+}
+
+model Message {
+  id                   String              @id @default(uuid())
+  roomId               String
+  senderId             String
+  content              String
+  type                 String              @default("text") // "text" | "image" | "file" | "payment"
+  fileName             String?
+  fileSize             Int?
+  mimeType             String?
+  fileUrl              String?
+  replyToId            String?
+  isEdited             Boolean             @default(false)
+  editedAt             DateTime?
+  isPinned             Boolean             @default(false)
+  pinnedAt             DateTime?
+  isDeleted            Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  paymentTransactionId String?
+  paymentAmount        Int?
+  paymentCurrency      String?             @default("INR")
+  paymentStatus        String?
+  paymentNote          String?
+
+  room                 Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender               User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo              Message?            @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies              Message[]           @relation("MessageReplies")
+  mentions             MessageMention[]
+  reactions            MessageReaction[]
+  deletedFor           MessageDeletedFor[]
+  readBy               MessageReadBy[]
+  transactions         Transaction[]
+
+  @@index([roomId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@index([isPinned])
+}
+
+model MessageMention {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+}
+
+model MessageDeletedFor {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model MessageReadBy {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model Transaction {
+  id                String    @id @default(uuid())
+  transactionId     String    @unique
+  provider          String    @default("razorpay") // "razorpay" | "mock"
+  providerOrderId   String?
+  providerPaymentId String?
+  senderId          String
+  recipientId       String
+  amount            Int       // minor units (paise)
+  currency          String    @default("INR")
+  note              String    @default("")
+  status            String    @default("created")
+  paymentMethod     String    @default("unknown")
+  chatRoomId        String?
+  relatedMessageId  String?
+  failureReason     String?
+  refundStatus      String    @default("none")
+  refundAmount      Int       @default(0)
+  idempotencyKey    String?   @unique
+  metadata          Json      @default("{}")
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sender            User      @relation("TransactionSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient         User      @relation("TransactionRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  room              Room?     @relation(fields: [chatRoomId], references: [id], onDelete: SetNull)
+  relatedMessage    Message?  @relation(fields: [relatedMessageId], references: [id], onDelete: SetNull)
+
+  @@index([senderId, createdAt(sort: Desc)])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([chatRoomId])
+  @@index([status])
+  @@index([providerOrderId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  data      Json     @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model BlockedUser {
+  id            String   @id @default(uuid())
+  userId        String
+  blockedUserId String
+  reason        String   @default("")
+  createdAt     DateTime @default(now())
+
+  user          User     @relation("UserBlocks", fields: [userId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("UserBlockedBy", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blockedUserId])
+}
+
+model DeviceSession {
+  id         String   @id @default(uuid())
+  userId     String
+  pushToken  String
+  platform   String   @default("unknown")
+  deviceInfo String   @default("")
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pushToken])
+}
+
+model Report {
+  id                String   @id @default(uuid())
+  reporterId        String
+  reportedUserId    String?
+  reportedMessageId String?
+  reason            String
+  status            String   @default("pending")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  reporter          User     @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser      User?    @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([status])
+}

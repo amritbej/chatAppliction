@@ -1,49 +1,79 @@
-const mongoose = require("mongoose");
+const { prisma } = require("../config/db");
 
-const notificationSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    type: {
-      type: String,
-      enum: [
-        "payment:received",
-        "payment:success",
-        "payment:failed",
-        "payment:refunded",
-        "message:mention",
-        "call:missed",
-        "system",
-      ],
-      required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    body: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    data: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-    isRead: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-  },
-  { timestamps: true }
-);
+const formatNotificationRecord = (item) => {
+  if (!item) return null;
+  const clone = { ...item };
+  clone._id = item.id;
+  clone.user = item.userId;
+  return clone;
+};
 
-notificationSchema.index({ user: 1, createdAt: -1 });
+class NotificationModel {
+  async create(data) {
+    const userId = data.user ? data.user.toString() : data.userId;
+    const created = await prisma.notification.create({
+      data: {
+        userId,
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        data: data.data || {},
+        isRead: Boolean(data.isRead),
+      },
+    });
+    return formatNotificationRecord(created);
+  }
 
-module.exports = mongoose.model("Notification", notificationSchema);
+  find(query = {}) {
+    let where = {};
+    if (query.user) where.userId = query.user.toString();
+    if (query.isRead !== undefined) where.isRead = Boolean(query.isRead);
+
+    const chainable = {
+      _where: where,
+      _orderBy: [{ createdAt: "desc" }],
+      _take: 50,
+      sort(sortObj) {
+        if (sortObj) {
+          this._orderBy = Object.entries(sortObj).map(([k, v]) => ({
+            [k]: v === -1 ? "desc" : "asc",
+          }));
+        }
+        return this;
+      },
+      limit(n) {
+        this._take = parseInt(n, 10);
+        return this;
+      },
+      then: async (resolve, reject) => {
+        try {
+          const items = await prisma.notification.findMany({
+            where: chainable._where,
+            orderBy: chainable._orderBy,
+            take: chainable._take,
+          });
+          resolve(items.map(formatNotificationRecord));
+        } catch (err) {
+          reject(err);
+        }
+      },
+    };
+
+    return chainable;
+  }
+
+  async findByIdAndUpdate(id, updates = {}) {
+    if (!id) return null;
+    const data = {};
+    if (updates.isRead !== undefined) data.isRead = Boolean(updates.isRead);
+
+    const updated = await prisma.notification.update({
+      where: { id: id.toString() },
+      data,
+    });
+    return formatNotificationRecord(updated);
+  }
+}
+
+const Notification = new NotificationModel();
+module.exports = Notification;

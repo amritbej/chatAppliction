@@ -1,36 +1,36 @@
-const mongoose = require("mongoose");
+const { prisma } = require("../config/db");
 
-const reportSchema = new mongoose.Schema(
-  {
-    reporter: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    reportedUser: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      index: true,
-    },
-    reportedMessage: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
-      index: true,
-    },
-    reason: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    status: {
-      type: String,
-      enum: ["pending", "reviewed", "dismissed", "action_taken"],
-      default: "pending",
-      index: true,
-    },
-  },
-  { timestamps: true }
-);
+const formatReportRecord = (r) => {
+  if (!r) return null;
+  const clone = { ...r };
+  clone._id = r.id;
+  clone.reporter = r.reporterId;
+  clone.reportedUser = r.reportedUserId;
+  clone.reportedMessage = r.reportedMessageId;
+  return clone;
+};
 
-module.exports = mongoose.model("Report", reportSchema);
+class ReportModel {
+  async create(data) {
+    const created = await prisma.report.create({
+      data: {
+        reporterId: data.reporter ? data.reporter.toString() : data.reporterId,
+        reportedUserId: data.reportedUser ? data.reportedUser.toString() : data.reportedUserId || null,
+        reportedMessageId: data.reportedMessage ? data.reportedMessage.toString() : data.reportedMessageId || null,
+        reason: data.reason,
+        status: data.status || "pending",
+      },
+    });
+    return formatReportRecord(created);
+  }
+
+  async find(query = {}) {
+    let where = {};
+    if (query.status) where.status = query.status;
+    const reports = await prisma.report.findMany({ where, orderBy: { createdAt: "desc" } });
+    return reports.map(formatReportRecord);
+  }
+}
+
+const Report = new ReportModel();
+module.exports = Report;
