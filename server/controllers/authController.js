@@ -255,12 +255,25 @@ const getMe = async (req, res) => {
 };
 
 const googleCallback = (req, res) => {
+  const returnTo = req.query.state || "";
+  const isMobile = returnTo.startsWith("chatapp://") || returnTo.startsWith("exp://");
+
   if (!req.user) {
+    if (isMobile) {
+      const sep = returnTo.includes("?") ? "&" : "?";
+      return res.redirect(`${returnTo}${sep}error=google_failed`);
+    }
     return res.redirect(`${process.env.CLIENT_URL}/login?error=google_failed`);
   }
 
   const token = generateToken(req.user._id);
   const params = new URLSearchParams({ token });
+
+  if (isMobile) {
+    const sep = returnTo.includes("?") ? "&" : "?";
+    return res.redirect(`${returnTo}${sep}${params.toString()}`);
+  }
+
   res.redirect(`${process.env.CLIENT_URL}/oauth/callback?${params.toString()}`);
 };
 

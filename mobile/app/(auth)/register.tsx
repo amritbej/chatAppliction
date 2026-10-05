@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { authApi } from "../../src/services/api/authApi";
+import GoogleSignInButton from "../../src/components/auth/GoogleSignInButton";
 
 export default function RegisterScreen() {
   const [username, setUsername] = useState("");
@@ -75,6 +76,15 @@ export default function RegisterScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
+
+          {/* Google Sign-Up */}
+          <GoogleSignInButton onError={(msg) => setError(msg)} disabled={loading} />
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Username</Text>
@@ -226,5 +236,22 @@ const styles = StyleSheet.create({
     color: "#34d399",
     fontSize: 14,
     fontWeight: "bold",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 18,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#1e293b",
+  },
+  dividerText: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
 });
