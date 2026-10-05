@@ -47,18 +47,35 @@ export default function SendPaymentModal({
 
       const orderData = orderRes.data;
 
-      // 2. Client Payment Gateway Trigger
-      if (orderData.provider === "razorpay" && window.Razorpay && orderData.key) {
+      // Ensure Razorpay SDK is loaded
+      const ensureRazorpay = () => {
+        return new Promise((resolve) => {
+          if (window.Razorpay) return resolve(true);
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+
+      // 2. Real Payment Gateway (Razorpay)
+      if (orderData.provider === "razorpay" && orderData.key) {
+        await ensureRazorpay();
+        if (!window.Razorpay) {
+          throw new Error("Unable to load Razorpay checkout SDK. Please check your internet connection.");
+        }
+
         const options = {
           key: orderData.key,
           amount: orderData.amount,
-          currency: orderData.currency,
-          name: "ChatApp Payment",
-          description: note || `Payment to ${recipient.username}`,
+          currency: orderData.currency || "INR",
+          name: "ChatApp Direct Transfer",
+          description: note || `Payment to @${recipient.username}`,
           order_id: orderData.orderId,
           handler: async (response) => {
             try {
-              // 3. Server Verification
+              // 3. Server-side Cryptographic HMAC-SHA256 Signature Verification
               const { data: verifyRes } = await api.post("/payments/verify", {
                 transactionId: orderData.transactionId,
                 providerOrderId: response.razorpay_order_id,
@@ -76,7 +93,7 @@ export default function SendPaymentModal({
           },
           modal: {
             ondismiss: () => {
-              setError("Payment was cancelled");
+              setError("Payment was cancelled by user");
               setStep("failed");
             },
           },
@@ -85,7 +102,7 @@ export default function SendPaymentModal({
         const rzp = new window.Razorpay(options);
         rzp.open();
       } else {
-        // Mock Sandbox Payment Mode
+        // Mock Sandbox Mode (when no Razorpay keys are configured)
         const { data: verifyRes } = await api.post("/payments/verify", {
           transactionId: orderData.transactionId,
           providerOrderId: orderData.orderId,
@@ -237,6 +254,10 @@ export default function SendPaymentModal({
               <div className="border-t border-slate-800 pt-3 flex justify-between text-base font-bold">
                 <span className="text-white">Total Payable</span>
                 <span className="text-emerald-400">₹{numAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>UPI (GPay, PhonePe, Paytm), Cards & NetBanking</span>
               </div>
             </div>
 
