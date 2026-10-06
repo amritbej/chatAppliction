@@ -96,6 +96,8 @@ class PaymentService {
     if (idempotencyKey) {
       const existing = await Transaction.findOne({ idempotencyKey, sender: senderId });
       if (existing) {
+        const gatewayBase = (process.env.PAYMENT_GATEWAY_URL || "https://rigid-faucet-unsafe.ngrok-free.dev").replace(/\/$/, "");
+        const checkoutUrl = `${gatewayBase}/pay?transactionId=${existing.transactionId}&orderId=${existing.providerOrderId}&amount=${existing.amount}&currency=${existing.currency}`;
         return {
           transactionId: existing.transactionId,
           orderId: existing.providerOrderId,
@@ -103,6 +105,8 @@ class PaymentService {
           currency: existing.currency,
           provider: existing.provider,
           status: existing.status,
+          checkoutUrl,
+          gatewayBase,
         };
       }
     }
@@ -143,6 +147,9 @@ class PaymentService {
       transaction.status = "pending";
       await transaction.save();
 
+      const gatewayBase = (process.env.PAYMENT_GATEWAY_URL || "https://rigid-faucet-unsafe.ngrok-free.dev").replace(/\/$/, "");
+      const checkoutUrl = `${gatewayBase}/pay?transactionId=${transaction.transactionId}&orderId=${order.orderId}&amount=${transaction.amount}&key=${encodeURIComponent(order.key || "")}&currency=${transaction.currency}`;
+
       return {
         transactionId: transaction.transactionId,
         orderId: order.orderId,
@@ -151,6 +158,8 @@ class PaymentService {
         key: order.key,
         provider: provider.name,
         status: transaction.status,
+        checkoutUrl,
+        gatewayBase,
       };
     } catch (err) {
       transaction.status = "failed";

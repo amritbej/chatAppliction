@@ -16,7 +16,15 @@
       "adaptiveIcon": {
         "backgroundColor": "#020617"
       },
-      "package": "com.amritbej.chatapp"
+      "package": "com.amritbej.chatapp",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro"

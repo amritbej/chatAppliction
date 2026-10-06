@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { paymentApi } from "../../src/services/api/paymentApi";
 
 export default function SendPaymentScreen() {
@@ -57,17 +58,38 @@ export default function SendPaymentScreen() {
 
       const orderData = orderRes.data;
 
-      // 2. Gateway Verification
-      // For mobile test sandbox, completes server verification
-      await paymentApi.verifyPayment({
-        transactionId: orderData.transactionId,
-        providerOrderId: orderData.orderId,
-        providerPaymentId: `mob_pay_${Date.now()}`,
-        signature: "mock_valid_signature",
-        paymentMethod: "upi",
-      });
+      // 2. Mock mode fallback if provider is mock
+      if (orderData.provider === "mock") {
+        await paymentApi.verifyPayment({
+          transactionId: orderData.transactionId,
+          providerOrderId: orderData.orderId,
+          providerPaymentId: `mob_mock_${Date.now()}`,
+          signature: "mock_valid_signature",
+          paymentMethod: "upi",
+        });
+        setStep("success");
+        return;
+      }
 
-      setStep("success");
+      // 3. Real Payment Gateway Redirection via Approved Domain
+      const gatewayUrl =
+        orderData.checkoutUrl ||
+        `https://rigid-faucet-unsafe.ngrok-free.dev/pay?transactionId=${orderData.transactionId}&orderId=${orderData.orderId}&amount=${orderData.amount}&key=${orderData.key || ""}&recipient=${encodeURIComponent(params.recipientUsername || "")}&note=${encodeURIComponent(note.trim())}&source=mobile&returnUrl=chatapp://payment/callback`;
+
+      // Open in secure browser session that listens for chatapp:// deep link return
+      await WebBrowser.openAuthSessionAsync(gatewayUrl, "chatapp://");
+
+      // Verify transaction status upon return
+      const txn = await paymentApi.getTransactionDetails(orderData.transactionId);
+      if (txn?.status === "success") {
+        setStep("success");
+      } else if (txn?.status === "failed") {
+        setError(txn?.failureReason || "Payment was declined by bank");
+        setStep("failed");
+      } else {
+        setError("Payment was cancelled or is pending bank authorization.");
+        setStep("failed");
+      }
     } catch (err: any) {
       setError(err.message || "Payment failed");
       setStep("failed");

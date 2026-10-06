@@ -26,6 +26,8 @@ configurePassport();
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
+  process.env.PAYMENT_GATEWAY_URL,
+  "https://rigid-faucet-unsafe.ngrok-free.dev",
   "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:8081",
@@ -36,7 +38,13 @@ const allowedOrigins = [
   .map((origin) => origin.trim().replace(/\/$/, ""));
 
 const corsOrigin = (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+  if (
+    !origin ||
+    allowedOrigins.includes(origin.replace(/\/$/, "")) ||
+    origin.endsWith(".ngrok-free.dev") ||
+    origin.endsWith(".ngrok.io") ||
+    origin.endsWith(".onrender.com")
+  ) {
     return callback(null, true);
   }
   return callback(new Error("Not allowed by CORS"));
@@ -75,8 +83,17 @@ app.use(
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Static file serving for media uploads
+// Static file serving for media uploads and public assets
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/public", express.static(path.join(__dirname, "public")));
+
+// Dedicated payment checkout page for Razorpay approved domain
+app.get("/pay", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "pay.html"));
+});
+app.get("/checkout", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "pay.html"));
+});
 
 app.use(
   session({

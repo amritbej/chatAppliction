@@ -11,12 +11,11 @@ import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { authApi } from "../../services/api/authApi";
+import { API_BASE } from "../../services/api/apiClient";
 import { storage } from "../../utils/storage";
 
 // Ensure web browser auth sessions complete properly
 WebBrowser.maybeCompleteAuthSession();
-
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
 
 interface Props {
   onError: (msg: string) => void;

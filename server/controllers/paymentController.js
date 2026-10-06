@@ -1,4 +1,5 @@
 const paymentService = require("../services/payments/paymentService");
+const Transaction = require("../models/Transaction");
 
 const createOrder = async (req, res, next) => {
   try {
@@ -106,10 +107,47 @@ const refundTransaction = async (req, res, next) => {
   }
 };
 
+const getPublicCheckoutDetails = async (req, res, next) => {
+  try {
+    const { transactionId } = req.params;
+    const transaction = await Transaction.findOne({ transactionId })
+      .populate("sender", "username displayName")
+      .populate("recipient", "username displayName");
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+      });
+    }
+
+    const razorpayKey = process.env.RAZORPAY_KEY_ID || "";
+
+    res.json({
+      success: true,
+      data: {
+        transactionId: transaction.transactionId,
+        orderId: transaction.providerOrderId,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: transaction.status,
+        note: transaction.note,
+        recipient: transaction.recipient?.displayName || transaction.recipient?.username || "Recipient",
+        sender: transaction.sender?.displayName || transaction.sender?.username || "Sender",
+        key: razorpayKey,
+        provider: transaction.provider,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createOrder,
   verifyPayment,
   getTransactions,
   getTransactionDetails,
+  getPublicCheckoutDetails,
   refundTransaction,
 };

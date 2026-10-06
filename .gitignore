@@ -49,4 +49,7 @@ Thumbs.db
 uploads/
 server/uploads/
 .expo/
+mobile/android/
+mobile/.gradle-build-cache/
+*.keystore
 

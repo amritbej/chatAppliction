@@ -108,3 +108,17 @@ describe("Webhook Signature & Idempotency", () => {
     );
   });
 });
+
+describe("Payment Gateway Checkout Page", () => {
+  it("should provide standalone pay.html with Razorpay checkout script", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const checkoutPath = path.join(__dirname, "../public/pay.html");
+    assert.strictEqual(fs.existsSync(checkoutPath), true);
+
+    const content = fs.readFileSync(checkoutPath, "utf8");
+    assert.match(content, /checkout\.razorpay\.com\/v1\/checkout\.js/);
+    assert.match(content, /transactionId/);
+    assert.match(content, /chatapp:\/\/payment\/callback/);
+  });
+});

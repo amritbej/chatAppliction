@@ -28,6 +28,11 @@ export const paymentApi = {
     return res.data.data;
   },
 
+  async getTransactionDetails(transactionId: string): Promise<Transaction> {
+    const res = await apiClient.get(`/payments/${transactionId}`);
+    return res.data.data;
+  },
+
   async refundTransaction(transactionId: string, reason?: string): Promise<Transaction> {
     const res = await apiClient.post(`/payments/${transactionId}/refund`, { reason });
     return res.data.data;

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ChatApp Secure Payment Checkout</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z'/></svg>">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: #090d16;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1.25rem;
+    }
+    .checkout-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 440px;
+      padding: 2rem 1.75rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 1rem;
+      margin-bottom: 0.75rem;
+      color: #10b981;
+      font-size: 1.5rem;
+    }
+    .app-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .amount-box {
+      background: #1e293b;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      border: 1px solid #334155;
+    }
+    .amount-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      margin-bottom: 0.25rem;
+    }
+    .amount-val {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #10b981;
+      letter-spacing: -0.03em;
+    }
+    .details-list {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    .detail-row span:first-child {
+      color: #94a3b8;
+    }
+    .detail-row span:last-child {
+      color: #e2e8f0;
+      font-weight: 500;
+      max-width: 60%;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: #059669;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      margin-top: 0.75rem;
+    }
+    .btn-secondary:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .status-msg {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      text-align: center;
+      display: none;
+    }
+    .status-msg.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .status-msg.info {
+      display: block;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+    }
+    .status-msg.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+    .footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top: 3px solid #ffffff;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-card">
+    <div class="header">
+      <div class="logo-badge">⚡</div>
+      <h1 class="app-title">ChatApp Direct Payment</h1>
+      <p class="subtitle">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Razorpay 256-Bit Encrypted Gateway
+      </p>
+    </div>
+
+    <div class="amount-box">
+      <div class="amount-label">Total Payable</div>
+      <div class="amount-val" id="amountDisplay">₹--</div>
+    </div>
+
+    <div class="details-list">
+      <div class="detail-row">
+        <span>Paying To</span>
+        <span id="recipientDisplay">Recipient</span>
+      </div>
+      <div class="detail-row">
+        <span>Transaction ID</span>
+        <span id="txnDisplay">--</span>
+      </div>
+      <div class="detail-row">
+        <span>Payment Method</span>
+        <span>UPI / Cards / Netbanking</span>
+      </div>
+      <div class="detail-row" id="noteRow" style="display: none;">
+        <span>Note</span>
+        <span id="noteDisplay">--</span>
+      </div>
+    </div>
+
+    <div id="statusBox" class="status-msg"></div>
+
+    <button id="payButton" class="btn">
+      <span>Proceed to Pay</span>
+    </button>
+
+    <button id="returnButton" class="btn btn-secondary" style="display: none;">
+      <span>Return to ChatApp</span>
+    </button>
+
+    <div class="footer">
+      Powered by Razorpay Payments &bull; SSL Secured &bull; Real Bank UPI
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      let transactionId = urlParams.get("transactionId") || "";
+      let orderId = urlParams.get("orderId") || "";
+      let amountPaise = parseInt(urlParams.get("amount") || "0", 10);
+      let key = urlParams.get("key") || "";
+      let recipient = urlParams.get("recipient") || "";
+      let note = urlParams.get("note") || "";
+      let token = urlParams.get("token") || "";
+      let returnUrl = urlParams.get("returnUrl") || "";
+      let source = urlParams.get("source") || "";
+      
+      // Default to live Render backend for verification API calls
+      const defaultBackend = "https://chatappliction-m73z.onrender.com";
+      const apiUrl = (urlParams.get("apiUrl") || defaultBackend).replace(/\/$/, "");
+
+      const amountDisplay = document.getElementById("amountDisplay");
+      const recipientDisplay = document.getElementById("recipientDisplay");
+      const txnDisplay = document.getElementById("txnDisplay");
+      const noteDisplay = document.getElementById("noteDisplay");
+      const noteRow = document.getElementById("noteRow");
+      const payButton = document.getElementById("payButton");
+      const returnButton = document.getElementById("returnButton");
+      const statusBox = document.getElementById("statusBox");
+
+      function showStatus(text, type) {
+        statusBox.className = "status-msg " + type;
+        statusBox.textContent = text;
+        statusBox.style.display = "block";
+      }
+
+      function updateUI() {
+        if (amountPaise > 0) {
+          amountDisplay.textContent = "₹" + (amountPaise / 100).toFixed(2);
+        }
+        if (recipient) recipientDisplay.textContent = recipient;
+        if (transactionId) txnDisplay.textContent = transactionId;
+        if (note) {
+          noteDisplay.textContent = note;
+          noteRow.style.display = "flex";
+        }
+      }
+
+      async function fetchMissingDetails() {
+        if (!transactionId) {
+          showStatus("Invalid checkout session. Transaction ID missing.", "error");
+          payButton.disabled = true;
+          return false;
+        }
+
+        if (!orderId || !key || amountPaise === 0) {
+          showStatus("Fetching transaction information...", "info");
+          try {
+            const res = await fetch(apiUrl + "/api/payments/public/" + transactionId);
+            const body = await res.json();
+            if (body.success && body.data) {
+              const d = body.data;
+              orderId = orderId || d.orderId;
+              key = key || d.key;
+              amountPaise = amountPaise || d.amount;
+              recipient = recipient || d.recipient;
+              note = note || d.note;
+              updateUI();
+              statusBox.style.display = "none";
+              return true;
+            } else {
+              showStatus(body.message || "Failed to load transaction details", "error");
+              payButton.disabled = true;
+              return false;
+            }
+          } catch (err) {
+            showStatus("Network error connecting to payment gateway: " + err.message, "error");
+            payButton.disabled = true;
+            return false;
+          }
+        }
+        updateUI();
+        return true;
+      }
+
+      async function launchRazorpay() {
+        payButton.disabled = true;
+        payButton.innerHTML = '<div class="spinner"></div><span>Opening Gateway...</span>';
+
+        if (!window.Razorpay) {
+          showStatus("Razorpay checkout SDK could not be loaded. Please check your internet connection.", "error");
+          payButton.disabled = false;
+          payButton.innerHTML = "<span>Retry Payment</span>";
+          return;
+        }
+
+        const options = {
+          key: key,
+          amount: amountPaise,
+          currency: "INR",
+          name: "ChatApp Direct Transfer",
+          description: note || ("Payment to " + recipient),
+          order_id: orderId,
+          handler: async function (response) {
+            showStatus("Payment authorized! Verifying cryptographic signature with bank...", "info");
+            payButton.innerHTML = '<div class="spinner"></div><span>Verifying...</span>';
+
+            try {
+              const headers = { "Content-Type": "application/json" };
+              if (token) {
+                headers["Authorization"] = "Bearer " + token;
+              }
+
+              const verifyRes = await fetch(apiUrl + "/api/payments/verify", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({
+                  transactionId: transactionId,
+                  providerOrderId: response.razorpay_order_id,
+                  providerPaymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  token: token,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                showStatus("✅ Payment Successful! Verified with bank.", "success");
+                payButton.style.display = "none";
+                returnButton.style.display = "flex";
+
+                // Handle return to mobile or web
+                if (returnUrl) {
+                  const target = returnUrl + (returnUrl.includes("?") ? "&" : "?") +
+                    "status=success&transactionId=" + encodeURIComponent(transactionId);
+                  setTimeout(function () {
+                    window.location.href = target;
+                  }, 1200);
+                } else if (source === "mobile") {
+                  setTimeout(function () {
+                    window.location.href = "chatapp://payment/callback?status=success&transactionId=" + encodeURIComponent(transactionId);
+                  }, 1200);
+                }
+              } else {
+                showStatus(verifyData.message || "Payment verification failed", "error");
+                payButton.disabled = false;
+                payButton.innerHTML = "<span>Retry Payment</span>";
+              }
+            } catch (vErr) {
+              showStatus("Verification network error: " + vErr.message, "error");
+              payButton.disabled = false;
+              payButton.innerHTML = "<span>Retry Payment</span>";
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              showStatus("Payment was cancelled or dismissed.", "info");
+              payButton.disabled = false;
+              payButton.innerHTML = "<span>Pay with Razorpay</span>";
+            },
+          },
+          theme: { color: "#10b981" },
+        };
+
+        try {
+          const rzp = new window.Razorpay(options);
+          rzp.on("payment.failed", function (response) {
+            showStatus("Payment Failed: " + (response.error.description || "Bank declined transaction"), "error");
+            payButton.disabled = false;
+            payButton.innerHTML = "<span>Retry Payment</span>";
+          });
+          rzp.open();
+        } catch (e) {
+          showStatus("Failed to open Razorpay checkout: " + e.message, "error");
+          payButton.disabled = false;
+          payButton.innerHTML = "<span>Retry Payment</span>";
+        }
+      }
+
+      returnButton.addEventListener("click", function () {
+        if (returnUrl) {
+          window.location.href = returnUrl;
+        } else {
+          window.location.href = "chatapp://payment/callback?transactionId=" + encodeURIComponent(transactionId);
+        }
+      });
+
+      payButton.addEventListener("click", function () {
+        launchRazorpay();
+      });
+
+      // Init on load
+      fetchMissingDetails().then(function (ok) {
+        if (ok && key && orderId) {
+          // Auto launch checkout after brief delay for smooth UX
+          setTimeout(launchRazorpay, 400);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

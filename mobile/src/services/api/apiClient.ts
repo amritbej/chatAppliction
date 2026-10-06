@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { storage } from "../../utils/storage";
 
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
+export const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "https://chatappliction-m73z.onrender.com").replace(/\/$/, "");
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_BASE}/api`,

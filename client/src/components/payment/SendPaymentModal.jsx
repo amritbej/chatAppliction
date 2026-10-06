@@ -59,7 +59,41 @@ export default function SendPaymentModal({
         });
       };
 
-      // 2. Real Payment Gateway (Razorpay)
+      // 2. Gateway Redirection via Approved Domain
+      if (orderData.checkoutUrl) {
+        // Open the Razorpay-approved gateway URL in a secure popup / tab
+        const popup = window.open(
+          orderData.checkoutUrl,
+          "ChatAppPayment",
+          "width=480,height=720,menubar=no,toolbar=no,location=no,status=no"
+        );
+
+        // Poll server for transaction completion
+        const pollInterval = setInterval(async () => {
+          try {
+            const { data: txnRes } = await api.get(`/payments/${orderData.transactionId}`);
+            if (txnRes.data?.status === "success") {
+              clearInterval(pollInterval);
+              if (popup && !popup.closed) popup.close();
+              setCompletedTxn(txnRes.data);
+              setStep("success");
+              onPaymentSuccess?.(txnRes.data);
+            } else if (txnRes.data?.status === "failed") {
+              clearInterval(pollInterval);
+              setError(txnRes.data?.failureReason || "Payment was declined");
+              setStep("failed");
+            }
+          } catch {
+            // keep polling
+          }
+        }, 2000);
+
+        // Cancel polling after 5 minutes
+        setTimeout(() => clearInterval(pollInterval), 300000);
+        return;
+      }
+
+      // Fallback: Direct Razorpay Checkout if no separate gateway URL configured
       if (orderData.provider === "razorpay" && orderData.key) {
         await ensureRazorpay();
         if (!window.Razorpay) {

@@ -4,6 +4,7 @@ const {
   verifyPayment,
   getTransactions,
   getTransactionDetails,
+  getPublicCheckoutDetails,
   refundTransaction,
 } = require("../controllers/paymentController");
 const { protect } = require("../middleware/authMiddleware");
@@ -11,6 +12,14 @@ const { paymentLimiter } = require("../middleware/rateLimiter");
 const { validate } = require("../middleware/validate");
 
 const router = express.Router();
+
+// Optional auth for payment verification from external gateway
+const optionalProtect = (req, res, next) => {
+  if (req.headers.authorization || req.query?.token || req.body?.token) {
+    return protect(req, res, next);
+  }
+  next();
+};
 
 // Order creation
 router.post(
@@ -26,10 +35,10 @@ router.post(
   createOrder
 );
 
-// Payment verification
+// Payment verification (accessible from approved gateway with HMAC validation)
 router.post(
   "/verify",
-  protect,
+  optionalProtect,
   paymentLimiter,
   validate({
     body: {
@@ -40,6 +49,9 @@ router.post(
   }),
   verifyPayment
 );
+
+// Public transaction checkout details for hosted payment page
+router.get("/public/:transactionId", getPublicCheckoutDetails);
 
 // Transaction history and details
 router.get("/", protect, getTransactions);
